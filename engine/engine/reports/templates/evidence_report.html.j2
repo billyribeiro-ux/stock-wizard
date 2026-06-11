@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  @page { size: A4; margin: 1.6cm; }
+  body { font-family: "Helvetica Neue", Arial, sans-serif; color: #1a1d23; font-size: 11px; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  h2 { font-size: 13px; margin: 16px 0 6px; border-bottom: 1px solid #d7dbe0; padding-bottom: 3px; }
+  .muted { color: #6b7280; }
+  .cover { border-bottom: 3px solid #2563eb; padding-bottom: 10px; margin-bottom: 12px; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .long { background: #dcfce7; color: #166534; }
+  .short { background: #fee2e2; color: #991b1b; }
+  .neutral { background: #e5e7eb; color: #374151; }
+  table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid #eef1f4; vertical-align: top; }
+  th { background: #f8fafc; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; color: #64748b; }
+  .for { color: #166534; } .against { color: #991b1b; }
+  .levels span { display: inline-block; margin-right: 14px; }
+  .footer { margin-top: 20px; font-size: 9px; color: #9ca3af; }
+</style>
+</head>
+<body>
+  <div class="cover">
+    <h1>{{ title }}</h1>
+    <div class="muted">
+      {{ symbol }} · {{ timeframe }} · {{ scanner_id }} ·
+      generated {{ generated_at }}
+    </div>
+  </div>
+
+  {% for r in results %}
+  <h2>
+    {{ r.symbol }} — {{ r.classification|replace('_',' ') }}
+    {% if r.direction %}
+      <span class="pill {{ r.direction.value|lower }}">{{ r.direction.value }}</span>
+    {% else %}
+      <span class="pill neutral">NO TRADE</span>
+    {% endif %}
+    <span class="muted"> score {{ '%.2f'|format(r.score) }}</span>
+  </h2>
+
+  <p><strong>Why:</strong> {{ r.evidence.why }}</p>
+  <p><strong>Why now:</strong> {{ r.evidence.why_now }}</p>
+
+  {% if r.levels %}
+  <p class="levels">
+    {% for k, v in r.levels.items() %}<span><strong>{{ k }}:</strong> {{ v }}</span>{% endfor %}
+  </p>
+  {% endif %}
+
+  <table>
+    <thead><tr><th>Evidence for</th><th>Weight</th><th>Evidence against</th><th>Weight</th></tr></thead>
+    <tbody>
+    {% set maxlen = [r.evidence.evidence_for|length, r.evidence.evidence_against|length]|max %}
+    {% for i in range(maxlen) %}
+      <tr>
+        <td class="for">{% if i < r.evidence.evidence_for|length %}{{ r.evidence.evidence_for[i].label }} = {{ r.evidence.evidence_for[i].value }}{% endif %}</td>
+        <td>{% if i < r.evidence.evidence_for|length %}{{ '%.2f'|format(r.evidence.evidence_for[i].weight) }}{% endif %}</td>
+        <td class="against">{% if i < r.evidence.evidence_against|length %}{{ r.evidence.evidence_against[i].label }} = {{ r.evidence.evidence_against[i].value }}{% endif %}</td>
+        <td>{% if i < r.evidence.evidence_against|length %}{{ '%.2f'|format(r.evidence.evidence_against[i].weight) }}{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <p><strong>Invalidation:</strong> {{ r.evidence.invalidation.description }}</p>
+  {% endfor %}
+
+  <div class="footer">
+    Stock Wizard — evidence-based signals. Every claim must be proven via backtest and
+    forward test before it is trusted. This report is research output, not financial advice.
+  </div>
+</body>
+</html>

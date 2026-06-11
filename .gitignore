@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# uv
+uv.lock.bak
+
+# Node / SvelteKit
+node_modules/
+.svelte-kit/
+apps/web/build/
+apps/web/.vercel/
+.pnpm-store/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.key
+master.key
+
+# Data / artifacts
+data/
+*.parquet
+*.duckdb
+exports/
+*.pdf
+*.csv
+!tests/fixtures/**/*.csv
+reports_out/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.log

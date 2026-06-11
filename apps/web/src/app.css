@@ -1,0 +1,61 @@
+@import 'tailwindcss';
+
+/* Iconify Tailwind v4 plugin — renders icons as classes like `icon-[ph--chart-line]` */
+@plugin '@iconify/tailwind4' {
+	prefixes: ph;
+	scale: 1;
+}
+
+@theme {
+	--font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+	--font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', 'Menlo', monospace;
+
+	/* Neutral "command center" surface palette */
+	--color-base-50: #f6f7f9;
+	--color-base-100: #e9edf2;
+	--color-base-200: #c8d0db;
+	--color-base-300: #9aa6b8;
+	--color-base-400: #6b7889;
+	--color-base-500: #4a566a;
+	--color-base-600: #353f50;
+	--color-base-700: #232b39;
+	--color-base-800: #161c27;
+	--color-base-850: #11161f;
+	--color-base-900: #0c1018;
+	--color-base-950: #070a10;
+
+	/* Semantic accents */
+	--color-accent: #38bdf8;
+	--color-accent-strong: #0ea5e9;
+	--color-long: #22c55e;
+	--color-long-soft: #16331f;
+	--color-short: #ef4444;
+	--color-short-soft: #3a1414;
+	--color-neutral-signal: #eab308;
+	--color-warn: #f59e0b;
+	--color-danger: #ef4444;
+	--color-ok: #22c55e;
+}
+
+html,
+body {
+	height: 100%;
+}
+
+::selection {
+	background: color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+/* thin dark scrollbars to fit the terminal aesthetic */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: var(--color-base-600) transparent;
+}
+*::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+	background: var(--color-base-600);
+	border-radius: 9999px;
+}

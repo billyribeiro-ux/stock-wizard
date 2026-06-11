@@ -1,0 +1,18 @@
+[project]
+name = "common"
+version = "0.1.0"
+description = "Shared cross-cutting utilities: settings, crypto, logging, time/tz"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.9",
+    "pydantic-settings>=2.5",
+    "cryptography>=43.0",
+    "pandas-market-calendars>=4.4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["common"]
