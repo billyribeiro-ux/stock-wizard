@@ -63,6 +63,7 @@ _NEEDS_UNIVERSE = {
     "pct_above_ma",
     "nh_nl",
     "zweig_thrust",
+    "absorption_ratio",
 }
 _NEEDS_VOL_TERM = {"vix_term_structure"}
 _NEEDS_RISK_RATIOS = {"risk_appetite"}

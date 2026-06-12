@@ -467,6 +467,91 @@ class VixTermStructureScanner(Scanner):
         )
 
 
+class AbsorptionRatioScanner(Scanner):
+    scanner_id = "absorption_ratio"
+    name = "Absorption Ratio (Systemic Risk)"
+    description = (
+        "Kritzman-Lo PCA systemic-risk gauge: share of universe variance in the top "
+        "eigenvectors. A spike in coupling (standardized shift >1σ) flags fragility."
+    )
+    category = "internals"
+    default_params = {"window": 60, "frac": 0.2}
+    params_schema = {
+        "type": "object",
+        "properties": {
+            "window": {"type": "integer", "default": 60},
+            "frac": {"type": "number", "default": 0.2},
+        },
+    }
+
+    def run(self, ctx: ScanContext) -> ScannerResult:
+        from ..ml import compute_absorption
+
+        universe = {s: o for s, o in ctx.aux.items() if not s.startswith("^")}
+        res = compute_absorption(universe, int(self.params["window"]), float(self.params["frac"]))
+        if res is None:
+            return flat(
+                self, ctx, "no_universe_data", "Universe basket unavailable for PCA.", "internals"
+            )
+        if res.elevated:
+            return make_result(
+                self,
+                ctx,
+                triggered=True,
+                direction=Side.SHORT,
+                score=min(1.0, 0.5 + res.standardized_shift / 4),
+                classification="fragility_warning",
+                why=(
+                    f"Absorption ratio {res.absorption_ratio:.0%} of variance in "
+                    f"{res.n_components}/{res.n_assets} components — market tightly coupled."
+                ),
+                why_now=(
+                    f"AR standardized shift {res.standardized_shift:+.1f}σ — coupling spiked, "
+                    f"a Kritzman-Lo fragility/drawdown precursor."
+                ),
+                invalidation=InvalidationRule(
+                    description="Coupling relaxes (shift falls < 0)", kind="internals"
+                ),
+                evidence_for=[
+                    ev(
+                        EK.INTERNAL,
+                        "absorption_ratio",
+                        res.absorption_ratio,
+                        0.5,
+                        Side.SHORT,
+                        self.scanner_id,
+                    ),
+                    ev(
+                        EK.INTERNAL,
+                        "ar_std_shift",
+                        res.standardized_shift,
+                        0.4,
+                        Side.SHORT,
+                        self.scanner_id,
+                    ),
+                ],
+                feature_refs={
+                    "absorption_ratio": res.absorption_ratio,
+                    "ar_std_shift": res.standardized_shift,
+                },
+            )
+        return make_result(
+            self,
+            ctx,
+            triggered=False,
+            direction=None,
+            score=0.3,
+            classification="coupling_normal",
+            why=f"Absorption ratio {res.absorption_ratio:.0%} (shift {res.standardized_shift:+.1f}σ).",
+            why_now="Market coupling is within its normal band.",
+            invalidation=InvalidationRule(description="Coupling spikes >1σ", kind="internals"),
+            feature_refs={
+                "absorption_ratio": res.absorption_ratio,
+                "ar_std_shift": res.standardized_shift,
+            },
+        )
+
+
 class RiskAppetiteScanner(Scanner):
     scanner_id = "risk_appetite"
     name = "Risk-Appetite Ratio Complex"

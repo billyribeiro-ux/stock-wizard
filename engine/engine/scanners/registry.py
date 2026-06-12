@@ -15,6 +15,7 @@ from .cross_asset import (
 from .custom_rule import CustomRuleScanner
 from .insider_congress import InsiderCongressScanner
 from .internals_scanners import (
+    AbsorptionRatioScanner,
     ArmsTrinScanner,
     MarketBreadthScanner,
     McClellanScanner,
@@ -117,6 +118,7 @@ _SCANNER_CLASSES: list[type[Scanner]] = [
     PutCallRatioScanner,
     VixTermStructureScanner,
     RiskAppetiteScanner,
+    AbsorptionRatioScanner,
     # volatility / cross-asset
     VolatilityRegimeScanner,
     VixTailRiskScanner,

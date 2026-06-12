@@ -139,6 +139,30 @@ async def leakage_audit(symbol: str, timeframe: str = "1d", history: str = "2y")
     }
 
 
+@router.get("/ml/feature-info")
+async def feature_info(
+    symbol: str, timeframe: str = "1d", history: str = "5y", horizon: int = 10
+) -> dict:
+    """Information-theoretic feature ranking: mutual information with the forward outcome."""
+    from dataclasses import asdict
+    from datetime import UTC, datetime, timedelta
+
+    from engine.data import build_ohlcv_source, validate
+    from engine.ml import mutual_information_ranking
+    from engine.schemas import Timeframe
+
+    from ..services.scan_service import _HISTORY_DAYS
+
+    start = datetime.now(UTC) - timedelta(days=_HISTORY_DAYS.get(history, 1827))
+    ohlcv, _ = validate(
+        build_ohlcv_source("yfinance").get_ohlcv(symbol.upper(), Timeframe(timeframe), start)
+    )
+    report = mutual_information_ranking(ohlcv, horizon=horizon)
+    if report is None:
+        raise HTTPException(422, "insufficient history for a feature-info analysis")
+    return {"symbol": symbol.upper(), "timeframe": timeframe, **asdict(report)}
+
+
 @router.get("/ml/models")
 async def list_models(session: AsyncSession = Depends(get_session)) -> dict:
     rows = await repo.list_models(session)

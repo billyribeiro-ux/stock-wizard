@@ -178,7 +178,12 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 
 ### 6.5 ML / self-learning / research (12)
 - [x] Pattern Discovery (KMeans regime clustering)
-- [x] Feature Importance & Evidence Miner (GB model importances)
+- [x] Feature Importance & Evidence Miner (GB importances **+ mutual-information ranking**
+      with information-gain % and redundancy detection; /ml/feature-info)
+- [x] **Absorption Ratio** systemic-risk scanner (Kritzman-Lo PCA eigenvalue concentration)
+- [x] **Confidence calibration in production** (isotonic score→win-rate + Wilson band,
+      per-scanner, applied to live signals; /ml/calibrate)
+- [x] **Purged & embargoed walk-forward CV** (López de Prado) gating model "reliable"
 - [x] Anomaly Detection (IsolationForest scanner)
 - [x] Regime Classification Engine (scanner + forward-bias)
 - [x] Genetic Rule Miner (evolves readable rules; walk-forward validated; /ml/mine)
