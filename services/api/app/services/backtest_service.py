@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from engine.backtesting import BacktestConfig, BacktestEngine
+from engine.backtesting import BacktestConfig, BacktestEngine, forward_test, walk_forward
 from engine.data import build_ohlcv_source, validate
 from engine.schemas import Timeframe
 
@@ -34,11 +34,44 @@ async def execute_backtest(session, backtest_id: UUID) -> dict:
             htf, _ = validate(htf)
 
         cfg = _config_from_params(bt.params)
+        mode = str(bt.params.get("mode", "backtest"))
+
+        if mode == "forward":
+            ft = forward_test(
+                bt.scanner_id,
+                ohlcv,
+                params=bt.params,
+                htf_ohlcv=htf,
+                split_frac=float(bt.params.get("split_frac", 0.6)),
+                config=cfg,
+            )
+            if ft is None:
+                await repo.set_backtest_status(
+                    session, backtest_id, "error", error="insufficient history for forward test"
+                )
+                return {"status": "error"}
+            for t in ft.out_of_sample.trades:
+                t.symbol = symbol
+            wf = walk_forward(bt.scanner_id, ohlcv, params=bt.params, htf_ohlcv=htf)
+            payload = {
+                "mode": "forward",
+                "baseline": ft.baseline,
+                "forward": ft.forward,
+                "drift": ft.drift,
+                "monte_carlo": ft.monte_carlo,
+                "promotion": ft.promotion,
+                "rationale": ft.rationale,
+                "walk_forward": wf,
+                **ft.out_of_sample.model_dump(mode="json"),
+            }
+            await repo.save_backtest_result(
+                session, backtest_id, metrics=ft.forward, payload=payload
+            )
+            return payload
+
         result = BacktestEngine(cfg).run(bt.scanner_id, ohlcv, params=bt.params, htf_ohlcv=htf)
-        # stamp the symbol onto each trade
         for t in result.trades:
             t.symbol = symbol
-
         payload = result.model_dump(mode="json")
         await repo.save_backtest_result(
             session, backtest_id, metrics=result.metrics.model_dump(mode="json"), payload=payload

@@ -58,12 +58,15 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 ### Phase 5 — Backtesting Lab 🚧  (see catalog below)
 - [x] `BacktestResult` contract locked + event-driven engine + metrics
 - [x] Backtest Lab UI + /backtests API + worker task
-- [ ] Walk-forward, Monte-Carlo, regime-segmented, options/multi-leg, portfolio
+- [x] Walk-forward validation + Monte-Carlo bootstrap stress
+- [ ] Regime-segmented, options/multi-leg, portfolio backtesters
 
 ### Phase 6 — Forward Testing & Live Feed 🚧
 - [x] Redis pub/sub signal channel + FastAPI SSE stream
 - [x] SvelteKit `query.live` live signal feed
-- [ ] Paper-trading engine + drift monitoring + promotion gate
+- [x] Forward (paper) test: in/out-of-sample split, drift, Monte-Carlo, promotion decision
+      (promote / keep_testing / retire) via /backtests mode=forward
+- [ ] Continuous live paper accumulation loop
 
 ### Phase 7 — ML & Self-Learning 🚧
 - [x] As-of-safe dataset/label builder, GB setup-success model with walk-forward
@@ -175,6 +178,7 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 ## §8 Backtester Catalog
 - [x] `BacktestResult` contract + metrics locked
 - [x] Event-Driven backtester (no-lookahead, ATR plan, commission + slippage, full metrics)
+- [x] Walk-Forward Validation · Monte-Carlo / Bootstrap stress · Forward (paper) test
 - [ ] Tick/1s/1m multi-bar · Vectorized research
 - [ ] SPX 0DTE Options · Multi-Leg Options (BWB) · Gamma Regime
 - [ ] Market Internals Confirmation · Volume Profile / Auction · Catalyst Event
