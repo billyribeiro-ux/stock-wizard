@@ -12,7 +12,7 @@ from ..db import SessionLocal, get_session
 from ..jobs import enqueue_training
 from ..repositories import repo
 from ..security import require_token
-from ..services.ml_service import execute_training
+from ..services.ml_service import execute_mining, execute_training
 
 router = APIRouter(tags=["ml"], dependencies=[Depends(require_token)])
 
@@ -43,6 +43,33 @@ async def train(
     if not enqueued:
         background.add_task(_run_inline, *args)
     return {"model_id": str(model_id), "enqueued": enqueued}
+
+
+class MineRequest(BaseModel):
+    symbol: str
+    timeframe: str = "1d"
+    history: str = "5y"
+    horizon: int = Field(default=10, ge=1, le=120)
+
+
+async def _mine_inline(model_id, symbol, timeframe, history, horizon) -> None:
+    async with SessionLocal() as session:
+        await execute_mining(session, model_id, symbol, timeframe, history, horizon)
+
+
+@router.post("/ml/mine", status_code=202)
+async def mine(
+    req: MineRequest, background: BackgroundTasks, session: AsyncSession = Depends(get_session)
+) -> dict:
+    """Genetic rule miner: evolve human-readable rules, walk-forward validated."""
+    model_id = uuid4()
+    await repo.create_model(
+        session, model_id, name=f"genetic:{req.symbol.upper()}", version="ga-1", status="training"
+    )
+    background.add_task(
+        _mine_inline, model_id, req.symbol.upper(), req.timeframe, req.history, req.horizon
+    )
+    return {"model_id": str(model_id), "enqueued": False}
 
 
 @router.get("/ml/models")

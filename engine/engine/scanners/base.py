@@ -16,6 +16,7 @@ from ..schemas import (
     EarningsEvent,
     FeatureSnapshot,
     InsiderTransaction,
+    NewsItem,
     OptionChain,
     ScannerResult,
     ScannerSpec,
@@ -36,6 +37,7 @@ class ScanContext:
     insider: list[InsiderTransaction] = field(default_factory=list)
     congress: list[CongressTrade] = field(default_factory=list)
     earnings: list[EarningsEvent] = field(default_factory=list)
+    news: list[NewsItem] = field(default_factory=list)
     aux: dict[str, OHLCV] = field(default_factory=dict)  # cross-asset peers (^VIX, SPY, ...)
     as_of: datetime = field(default_factory=lambda: datetime.now(UTC))
     run_id: UUID | None = None

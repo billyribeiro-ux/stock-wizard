@@ -7,6 +7,7 @@ from uuid import UUID
 from app.db import SessionLocal
 from app.pubsub import get_redis
 from app.services.backtest_service import execute_backtest
+from app.services.discovery_service import execute_discovery
 from app.services.ml_service import execute_training
 from app.services.scan_service import execute_scan
 
@@ -26,6 +27,13 @@ async def run_backtest(ctx, backtest_id: str) -> int:
     async with SessionLocal() as session:
         result = await execute_backtest(session, UUID(backtest_id))
         return result.get("metrics", {}).get("total_trades", 0)
+
+
+async def run_discovery(ctx, discovery_id: str) -> int:
+    """Run self-learning discovery over past history and persist the report."""
+    async with SessionLocal() as session:
+        payload = await execute_discovery(session, UUID(discovery_id))
+        return payload.get("n_events", 0) if isinstance(payload, dict) else 0
 
 
 async def train_model(

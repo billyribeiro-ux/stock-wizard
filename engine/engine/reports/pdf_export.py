@@ -90,3 +90,19 @@ def render_backtest_pdf(
     from weasyprint import HTML
 
     return HTML(string=render_backtest_html(result, title)).write_pdf()
+
+
+def render_discovery_html(report) -> str:
+    """Render a self-learning DiscoveryReport (engine.ml.discovery) to HTML."""
+    template = _env.get_template("discovery_report.html.j2")
+    return template.render(
+        r=report,
+        sample=list(reversed(report.events[-25:])),
+        generated_at=datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
+    )
+
+
+def render_discovery_pdf(report) -> bytes:
+    from weasyprint import HTML
+
+    return HTML(string=render_discovery_html(report)).write_pdf()

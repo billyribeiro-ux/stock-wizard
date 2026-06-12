@@ -2,6 +2,8 @@
 
 from .anomaly import AnomalyResult, detect_last_bar
 from .dataset import Dataset, build_dataset, compute_feature_frame
+from .discovery import DiscoveryReport, TurnEvent, discover
+from .genetic import MinedRule, MinerConfig, mine_rules
 from .models import ModelReport, train_setup_model
 from .regime import RegimeResult, classify_regime
 
@@ -15,4 +17,10 @@ __all__ = [
     "AnomalyResult",
     "classify_regime",
     "RegimeResult",
+    "mine_rules",
+    "MinedRule",
+    "MinerConfig",
+    "discover",
+    "DiscoveryReport",
+    "TurnEvent",
 ]

@@ -39,3 +39,7 @@ async def enqueue_training(
     model_id: str, scanner_id: str, symbol: str, timeframe: str, history: str, horizon: int
 ) -> bool:
     return await _enqueue("train_model", model_id, scanner_id, symbol, timeframe, history, horizon)
+
+
+async def enqueue_discovery(discovery_id: str) -> bool:
+    return await _enqueue("run_discovery", discovery_id)

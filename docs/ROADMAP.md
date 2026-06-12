@@ -158,8 +158,8 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 
 ### 6.4 Catalyst / calendar / analog (5 + extensions)
 - [x] **Insider & Congress Flow** _(added: SEC EDGAR + Finnhub)_
-- [ ] Catalyst & News Event
-- [ ] Economic Calendar
+- [x] Catalyst & News Event (Finnhub headlines + sentiment lexicon)
+- [ ] Economic Calendar (needs econ-calendar feed)
 - [x] Earnings & Guidance (Finnhub: event risk + post-earnings drift)
 - [x] Seasonality & Similar-Day
 - [x] Macro Regime (VIX + equities + bonds)
@@ -169,7 +169,9 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Feature Importance & Evidence Miner (GB model importances)
 - [x] Anomaly Detection (IsolationForest scanner)
 - [x] Regime Classification Engine (scanner + forward-bias)
-- [ ] Genetic Rule Miner
+- [x] Genetic Rule Miner (evolves readable rules; walk-forward validated; /ml/mine)
+- [x] **Self-Learning Discovery** (replays any lookback of history, self-identifies WHY
+      each turn was bought/sold per trade style; CSV + PDF exports; /discovery API)
 - [x] Bayesian Evidence Scorer (log-odds posterior + confidence band, wired into signals)
 - [ ] Reinforcement Learning Trade Policy Lab
 - [x] Failure Analysis (tags losing trades by reason; in every backtest payload)

@@ -79,6 +79,37 @@ def scanner_results_to_csv(results: list[ScannerResult]) -> str:
     return buf.getvalue()
 
 
+DISCOVERY_COLUMNS = [
+    "ts",
+    "kind",
+    "price",
+    "forward_move_pct",
+    "forward_move_atr",
+    "reasons",
+    "reason_details",
+]
+
+
+def discovery_to_csv(report) -> str:
+    """Event log of a self-learning DiscoveryReport (engine.ml.discovery)."""
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=DISCOVERY_COLUMNS, extrasaction="ignore")
+    w.writeheader()
+    for e in report.events:
+        w.writerow(
+            {
+                "ts": e.ts,
+                "kind": e.kind,
+                "price": e.price,
+                "forward_move_pct": e.forward_move_pct,
+                "forward_move_atr": e.forward_move_atr,
+                "reasons": "; ".join(r.label for r in e.reasons),
+                "reason_details": "; ".join(r.detail for r in e.reasons),
+            }
+        )
+    return buf.getvalue()
+
+
 def signals_to_csv(signals: list[SignalPacket]) -> str:
     buf = io.StringIO()
     w = csv.DictWriter(buf, fieldnames=SIGNAL_COLUMNS, extrasaction="ignore")

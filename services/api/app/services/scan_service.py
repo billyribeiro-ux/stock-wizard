@@ -48,6 +48,7 @@ _HTF = {
 _NEEDS_OPTIONS = {"spx_gamma_command"}
 _NEEDS_FLOW = {"insider_congress_flow"}
 _NEEDS_EARNINGS = {"earnings_guidance"}
+_NEEDS_NEWS = {"catalyst_news"}
 _NEEDS_AUX = {
     "vix_tail_risk",
     "index_divergence",
@@ -114,6 +115,9 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
             earnings = []
             if run.scanner_id in _NEEDS_EARNINGS:
                 earnings = await _fetch_earnings(session, symbol)
+            news = []
+            if run.scanner_id in _NEEDS_NEWS:
+                news = await _fetch_news(session, symbol)
 
             snapshot = factory.build_snapshot(ohlcv, chain=chain)
             scanner = build_scanner(run.scanner_id, run.params)
@@ -127,6 +131,7 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
                 insider=insider,
                 congress=congress,
                 earnings=earnings,
+                news=news,
                 aux=aux,
                 run_id=run_id,
             )
@@ -183,6 +188,25 @@ async def _fetch_earnings(session, symbol: str):
     try:
         api_key = get_secret_box().decrypt(key_row.ciphertext)
         return FinnhubSource(api_key).get_earnings(symbol)
+    except Exception:
+        return []
+
+
+async def _fetch_news(session, symbol: str):
+    """Fetch recent company news via Finnhub (keyed), best-effort."""
+    key_row = await repo.get_enabled_key_for(session, "finnhub")
+    if key_row is None:
+        return []
+    from datetime import date
+    from datetime import timedelta as _td
+
+    from engine.data.finnhub_source import FinnhubSource
+
+    from ..security import get_secret_box
+
+    try:
+        api_key = get_secret_box().decrypt(key_row.ciphertext)
+        return FinnhubSource(api_key).get_news(symbol, since=date.today() - _td(days=3))
     except Exception:
         return []
 

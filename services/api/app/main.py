@@ -11,6 +11,7 @@ from .db import engine
 from .routers import (
     alerts,
     backtests,
+    discovery,
     exports,
     health,
     ml,
@@ -50,6 +51,7 @@ def create_app() -> FastAPI:
     app.include_router(vendors.router)
     app.include_router(exports.router)
     app.include_router(alerts.router)
+    app.include_router(discovery.router)
     return app
 
 

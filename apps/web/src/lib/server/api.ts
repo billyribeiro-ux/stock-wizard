@@ -12,6 +12,8 @@
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 import type {
+	AlertEventsResponse,
+	AlertRulesResponse,
 	Backtest,
 	BacktestsResponse,
 	HealthResponse,
@@ -237,6 +239,46 @@ export function setVendorKeyEnabled(
 
 export function deleteVendorKey(id: string): Promise<void> {
 	return request<void>(`/vendors/keys/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+// --- Alerts --------------------------------------------------------------------
+
+export function listAlertRules(): Promise<AlertRulesResponse> {
+	return request<AlertRulesResponse>('/alerts/rules');
+}
+
+export interface CreateAlertRulePayload {
+	name: string;
+	scanner_ids: string[];
+	symbols: string[];
+	sides: string[];
+	classifications: string[];
+	min_score: number;
+	channel: string;
+	target: string;
+	cooldown_seconds: number;
+}
+
+export function createAlertRule(payload: CreateAlertRulePayload): Promise<{ id: string }> {
+	return request<{ id: string }>('/alerts/rules', { method: 'POST', body: payload });
+}
+
+export function setAlertRuleEnabled(
+	id: string,
+	enabled: boolean
+): Promise<{ id: string; enabled: boolean }> {
+	return request<{ id: string; enabled: boolean }>(`/alerts/rules/${encodeURIComponent(id)}`, {
+		method: 'PATCH',
+		body: { enabled }
+	});
+}
+
+export function deleteAlertRule(id: string): Promise<void> {
+	return request<void>(`/alerts/rules/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+export function listAlertEvents(): Promise<AlertEventsResponse> {
+	return request<AlertEventsResponse>('/alerts/events');
 }
 
 // --- Exports -----------------------------------------------------------------

@@ -295,6 +295,52 @@ export interface ForwardTest extends Omit<Backtest, 'result'> {
 	result?: ForwardReport | null;
 }
 
+// --- Alerts --------------------------------------------------------------------
+
+/** Delivery channel an alert rule routes matched signals through. */
+export type AlertChannel = 'log' | 'webhook' | 'email' | string;
+
+/** A user-defined alerting rule (GET /alerts/rules). */
+export interface AlertRule {
+	id: string;
+	name: string;
+	enabled: boolean;
+	scanner_ids: string[];
+	symbols: string[];
+	sides: Side[];
+	classifications: string[];
+	min_score: number;
+	channel: AlertChannel;
+	target: string;
+	cooldown_seconds: number;
+	created_at: string;
+}
+
+export interface AlertRulesResponse {
+	items: AlertRule[];
+}
+
+/** A fired alert (GET /alerts/events). */
+export interface AlertEvent {
+	id: string;
+	rule_id: string;
+	signal_id: string;
+	symbol: string;
+	side: Side;
+	scanner_id: string;
+	classification: string;
+	score: number;
+	channel: AlertChannel;
+	delivered: boolean;
+	error?: string | null;
+	message: string;
+	created_at: string;
+}
+
+export interface AlertEventsResponse {
+	items: AlertEvent[];
+}
+
 // --- ML models ---------------------------------------------------------------
 
 /** Model lifecycle/quality status. `training` is non-terminal; the rest are. */

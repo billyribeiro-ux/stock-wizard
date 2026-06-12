@@ -11,10 +11,12 @@
 		{ href: '/scanners', label: 'Scanners', icon: 'scan' },
 		{ href: '/results', label: 'Results', icon: 'table' },
 		{ href: '/backtest', label: 'Backtest Lab', icon: 'flask' },
+		{ href: '/replay', label: 'Trade Replay', icon: 'play-circle' },
 		{ href: '/forward', label: 'Forward Test', icon: 'test-tube' },
 		{ href: '/ml', label: 'ML Lab', icon: 'brain' },
 		{ href: '/portfolio', label: 'Portfolio', icon: 'briefcase' },
 		{ href: '/gamma', label: 'SPX Gamma Lab', icon: 'chart-bar' },
+		{ href: '/alerts', label: 'Alerts', icon: 'bell' },
 		{ href: '/settings', label: 'Settings', icon: 'gear-six' }
 	];
 

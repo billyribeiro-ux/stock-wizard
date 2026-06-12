@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from ..schemas import ScannerSpec
 from .base import Scanner
-from .catalyst_scanners import EarningsGuidanceScanner
+from .catalyst_scanners import CatalystNewsScanner, EarningsGuidanceScanner
 from .cross_asset import (
     CrossAssetRiskScanner,
     IndexDivergenceScanner,
@@ -106,6 +106,7 @@ _SCANNER_CLASSES: list[type[Scanner]] = [
     # catalyst / flow
     InsiderCongressScanner,
     EarningsGuidanceScanner,
+    CatalystNewsScanner,
     # ML / self-learning
     AnomalyDetectionScanner,
     RegimeClassificationScanner,
