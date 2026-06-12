@@ -10,11 +10,18 @@ swing = 1d+), the engine:
 2. At each event bar it inspects the as-of-safe feature vector and self-identifies the
    evidence reasons present at that exact moment (oversold flush, volume climax,
    dry-up, VWAP/band stretch, OBV divergence, compression, structure break...).
-3. Aggregates the reasons: how often each preceded a buy/sell turn and how large the
-   average forward move was — i.e. the system *learns from history which reasons
-   actually mattered*, per symbol, timeframe, and trade style.
+3. Aggregates each reason against a **baseline** (mean forward move of all turns) to get
+   its *lift*, with a Welch t-stat vs the turns lacking it, then **validates** every
+   reason on a held-out out-of-sample slice. A reason only ``holds_up`` if its lift is
+   positive in-sample AND out-of-sample with enough samples — the platform's "prove it"
+   standard, not just description.
+4. Loop closure: reasons that hold up are emitted as ``suggested_rules`` — runnable
+   ``custom_rule`` condition sets, so a validated discovery becomes a live, backtestable,
+   alertable scanner in one click.
 
-Results export to CSV (event log) and PDF (reason report).
+Reasons (features) are as-of-safe (computed from data up to the turn bar); only the
+labels (which bar was a pivot, the forward move) use later bars, as a historical study
+should. Results export to CSV (event log) and PDF (validated reason report).
 """
 
 from __future__ import annotations
@@ -65,6 +72,25 @@ class ReasonStat:
     count: int
     pct_of_events: float
     avg_forward_move_pct: float
+    baseline_move_pct: float = 0.0  # mean forward move across ALL turns of this kind
+    lift: float = 0.0  # in-sample: avg_forward_move - baseline
+    t_stat: float = 0.0  # reason group vs the rest (Welch)
+    oos_count: int = 0
+    oos_avg_move_pct: float = 0.0
+    oos_lift: float = 0.0  # out-of-sample lift over OOS baseline
+    holds_up: bool = False  # positive lift in-sample AND out-of-sample w/ enough samples
+
+
+@dataclass(frozen=True)
+class SuggestedRule:
+    """A validated discovery reason translated into a runnable custom_rule."""
+
+    name: str
+    direction: str  # LONG | SHORT
+    conditions: list[dict]  # custom_rule condition dicts
+    source_reason: str
+    in_sample_lift: float
+    oos_lift: float
 
 
 @dataclass
@@ -81,6 +107,29 @@ class DiscoveryReport:
     events: list[TurnEvent]
     buy_reasons: list[ReasonStat]
     sell_reasons: list[ReasonStat]
+    baseline_buy_move: float = 0.0
+    baseline_sell_move: float = 0.0
+    suggested_rules: list[SuggestedRule] = field(default_factory=list)
+    validated_split: float = 0.6  # fraction used for in-sample learning
+
+
+# Map each discovery reason to a runnable custom_rule condition (feature/op/threshold).
+_REASON_TO_CONDITION: dict[str, dict] = {
+    "rsi_oversold": {"feature": "rsi14", "op": "lt", "threshold": 35},
+    "rsi_overbought": {"feature": "rsi14", "op": "gt", "threshold": 65},
+    "stretched_below_mean": {"feature": "dist_sma20_atr", "op": "lt", "threshold": -1.5},
+    "stretched_above_mean": {"feature": "dist_sma20_atr", "op": "gt", "threshold": 1.5},
+    "band_extreme_low": {"feature": "bb_pctb", "op": "lt", "threshold": 0.1},
+    "band_extreme_high": {"feature": "bb_pctb", "op": "gt", "threshold": 0.9},
+    "volume_climax": {"feature": "rvol", "op": "gt", "threshold": 2.0},
+    "volume_dry_up": {"feature": "rvol", "op": "lt", "threshold": 0.5},
+    "momentum_flush": {"feature": "ret_5", "op": "lt", "threshold": -0.01},
+    "momentum_blowoff": {"feature": "ret_5", "op": "gt", "threshold": 0.01},
+    "obv_divergence_bull": {"feature": "obv_slope", "op": "gt", "threshold": 0.0},
+    "obv_divergence_bear": {"feature": "obv_slope", "op": "lt", "threshold": 0.0},
+    "climactic_bar": {"feature": "range_atr", "op": "gt", "threshold": 1.6},
+    "compression_turn": {"feature": "range_atr", "op": "lt", "threshold": 0.5},
+}
 
 
 def _pivots(df, k: int, min_move_atr: float, a) -> list[tuple[int, str]]:
@@ -220,6 +269,7 @@ def discover(
     swing_k: int = 3,
     min_move_atr: float = 1.5,
     max_events: int = 400,
+    train_frac: float = 0.6,
 ) -> DiscoveryReport | None:
     """Run self-learning discovery over the given history window."""
     df = ohlcv_to_frame(ohlcv)
@@ -257,29 +307,89 @@ def discover(
         )
     events = events[-max_events:]
 
-    def _aggregate(kind: str) -> list[ReasonStat]:
-        sub = [e for e in events if e.kind == kind]
-        if not sub:
-            return []
-        counts: dict[str, list] = {}
-        for e in sub:
-            for r in e.reasons:
-                counts.setdefault(r.code, [r.label, 0, []])
-                counts[r.code][1] += 1
-                counts[r.code][2].append(e.forward_move_pct)
-        stats = [
-            ReasonStat(
-                code=code,
-                label=label,
-                count=cnt,
-                pct_of_events=round(cnt / len(sub), 4),
-                avg_forward_move_pct=round(float(np.mean(moves)), 5),
+    # Time-ordered learn/validate split — discovery must prove a reason out-of-sample,
+    # not just describe the past (the platform's precision standard).
+    split = int(len(events) * train_frac)
+    train_events = events[:split]
+    valid_events = events[split:]
+
+    def _moves(evs, kind):
+        return [e.forward_move_pct for e in evs if e.kind == kind]
+
+    def _aggregate(kind: str) -> tuple[list[ReasonStat], float]:
+        train_sub = [e for e in train_events if e.kind == kind]
+        valid_sub = [e for e in valid_events if e.kind == kind]
+        all_sub = [e for e in events if e.kind == kind]
+        if not all_sub:
+            return [], 0.0
+        baseline = float(np.mean(_moves(all_sub, kind))) if all_sub else 0.0
+        base_tr = float(np.mean(_moves(train_sub, kind))) if train_sub else baseline
+        base_va = float(np.mean(_moves(valid_sub, kind))) if valid_sub else baseline
+
+        # group moves by reason code, separately for train and validation
+        def grouped(evs):
+            g: dict[str, list] = {}
+            for e in evs:
+                for r in e.reasons:
+                    g.setdefault(r.code, [r.label, []])[1].append(e.forward_move_pct)
+            return g
+
+        tr = grouped(train_sub)
+        va = grouped(valid_sub)
+        tr_moves_all = _moves(train_sub, kind)
+
+        stats: list[ReasonStat] = []
+        for code, (label, moves) in tr.items():
+            mean_r = float(np.mean(moves))
+            lift = mean_r - base_tr
+            # Welch t: this reason's turns vs the turns WITHOUT it (per-event, not by value).
+            rest = [
+                e.forward_move_pct for e in train_sub if code not in {r.code for r in e.reasons}
+            ] or tr_moves_all
+            t_stat = _welch_t(moves, rest)
+            oos_label_moves = va.get(code, [label, []])[1]
+            oos_n = len(oos_label_moves)
+            oos_mean = float(np.mean(oos_label_moves)) if oos_n else 0.0
+            oos_lift = (oos_mean - base_va) if oos_n else 0.0
+            holds = lift > 0 and oos_lift > 0 and oos_n >= max(3, len(valid_sub) // 20)
+            stats.append(
+                ReasonStat(
+                    code=code,
+                    label=label,
+                    count=len(moves),
+                    pct_of_events=round(len(moves) / max(len(train_sub), 1), 4),
+                    avg_forward_move_pct=round(mean_r, 5),
+                    baseline_move_pct=round(base_tr, 5),
+                    lift=round(lift, 5),
+                    t_stat=round(t_stat, 3),
+                    oos_count=oos_n,
+                    oos_avg_move_pct=round(oos_mean, 5),
+                    oos_lift=round(oos_lift, 5),
+                    holds_up=holds,
+                )
             )
-            for code, (label, cnt, moves) in counts.items()
-        ]
-        # Rank by efficacy x frequency — the "what actually mattered" ordering.
-        stats.sort(key=lambda s: s.avg_forward_move_pct * s.count, reverse=True)
-        return stats
+        # Rank: validated edge first (holds_up), then in-sample lift x sqrt(count).
+        stats.sort(key=lambda s: (s.holds_up, s.lift * (s.count**0.5)), reverse=True)
+        return stats, baseline
+
+    buy_reasons, base_buy = _aggregate("bought")
+    sell_reasons, base_sell = _aggregate("sold")
+
+    # Loop closure: turn validated reasons into runnable custom_rule candidates.
+    suggested: list[SuggestedRule] = []
+    for direction, reasons in (("LONG", buy_reasons), ("SHORT", sell_reasons)):
+        for s in reasons:
+            if s.holds_up and s.code in _REASON_TO_CONDITION:
+                suggested.append(
+                    SuggestedRule(
+                        name=f"{s.label} ({direction})",
+                        direction=direction,
+                        conditions=[_REASON_TO_CONDITION[s.code]],
+                        source_reason=s.code,
+                        in_sample_lift=s.lift,
+                        oos_lift=s.oos_lift,
+                    )
+                )
 
     bought = [e for e in events if e.kind == "bought"]
     sold = [e for e in events if e.kind == "sold"]
@@ -295,6 +405,22 @@ def discover(
         n_bought=len(bought),
         n_sold=len(sold),
         events=events,
-        buy_reasons=_aggregate("bought"),
-        sell_reasons=_aggregate("sold"),
+        buy_reasons=buy_reasons,
+        sell_reasons=sell_reasons,
+        baseline_buy_move=round(base_buy, 5),
+        baseline_sell_move=round(base_sell, 5),
+        suggested_rules=suggested,
+        validated_split=train_frac,
     )
+
+
+def _welch_t(group: list[float], rest: list[float]) -> float:
+    """Welch's t-statistic comparing a reason group's forward moves to the rest."""
+    if len(group) < 2 or len(rest) < 2:
+        return 0.0
+    g, r = np.asarray(group, dtype=float), np.asarray(rest, dtype=float)
+    vg, vr = g.var(ddof=1), r.var(ddof=1)
+    denom = np.sqrt(vg / len(g) + vr / len(r))
+    if denom <= 1e-12:
+        return 0.0
+    return float((g.mean() - r.mean()) / denom)

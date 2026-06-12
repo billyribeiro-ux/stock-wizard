@@ -40,27 +40,51 @@
     <div class="card"><div class="label">Style</div><div class="value">{{ r.trade_style|replace('_',' ') }}</div></div>
   </div>
 
-  <h2>Why it was BOUGHT — reasons ranked by frequency × forward move</h2>
+  <h2>Why it was BOUGHT — reasons ranked by validated edge (lift vs baseline {{ '%.2f%%'|format(r.baseline_buy_move*100) }})</h2>
   <table>
-    <thead><tr><th>Reason</th><th>Count</th><th>% of bottoms</th><th>Avg forward move</th></tr></thead>
+    <thead><tr><th>Reason</th><th>Count</th><th>Avg move</th><th>Lift</th><th>t</th><th>OOS lift</th><th>Holds up?</th></tr></thead>
     <tbody>
     {% for s in r.buy_reasons %}
-      <tr><td>{{ s.label }}</td><td>{{ s.count }}</td><td>{{ '%.0f%%'|format(s.pct_of_events*100) }}</td>
-          <td class="pos">{{ '%+.2f%%'|format(s.avg_forward_move_pct*100) }}</td></tr>
+      <tr><td>{{ s.label }}</td><td>{{ s.count }}</td>
+          <td>{{ '%+.2f%%'|format(s.avg_forward_move_pct*100) }}</td>
+          <td class="{{ 'pos' if s.lift > 0 else 'neg' }}">{{ '%+.2f%%'|format(s.lift*100) }}</td>
+          <td>{{ '%.1f'|format(s.t_stat) }}</td>
+          <td class="{{ 'pos' if s.oos_lift > 0 else 'neg' }}">{{ '%+.2f%%'|format(s.oos_lift*100) }}</td>
+          <td>{{ '✅ validated' if s.holds_up else '—' }}</td></tr>
     {% endfor %}
     </tbody>
   </table>
 
-  <h2>Why it was SOLD — reasons ranked by frequency × forward move</h2>
+  <h2>Why it was SOLD — reasons ranked by validated edge (lift vs baseline {{ '%.2f%%'|format(r.baseline_sell_move*100) }})</h2>
   <table>
-    <thead><tr><th>Reason</th><th>Count</th><th>% of tops</th><th>Avg forward move</th></tr></thead>
+    <thead><tr><th>Reason</th><th>Count</th><th>Avg move</th><th>Lift</th><th>t</th><th>OOS lift</th><th>Holds up?</th></tr></thead>
     <tbody>
     {% for s in r.sell_reasons %}
-      <tr><td>{{ s.label }}</td><td>{{ s.count }}</td><td>{{ '%.0f%%'|format(s.pct_of_events*100) }}</td>
-          <td class="neg">{{ '%+.2f%%'|format(s.avg_forward_move_pct*100) }}</td></tr>
+      <tr><td>{{ s.label }}</td><td>{{ s.count }}</td>
+          <td>{{ '%+.2f%%'|format(s.avg_forward_move_pct*100) }}</td>
+          <td class="{{ 'pos' if s.lift > 0 else 'neg' }}">{{ '%+.2f%%'|format(s.lift*100) }}</td>
+          <td>{{ '%.1f'|format(s.t_stat) }}</td>
+          <td class="{{ 'pos' if s.oos_lift > 0 else 'neg' }}">{{ '%+.2f%%'|format(s.oos_lift*100) }}</td>
+          <td>{{ '✅ validated' if s.holds_up else '—' }}</td></tr>
     {% endfor %}
     </tbody>
   </table>
+
+  {% if r.suggested_rules %}
+  <h2>Promotable rules — validated reasons (in-sample + out-of-sample lift)</h2>
+  <table>
+    <thead><tr><th>Suggested rule</th><th>Direction</th><th>Condition</th><th>IS lift</th><th>OOS lift</th></tr></thead>
+    <tbody>
+    {% for sr in r.suggested_rules %}
+      <tr><td>{{ sr.name }}</td>
+          <td><span class="pill {{ 'bought' if sr.direction == 'LONG' else 'sold' }}">{{ sr.direction }}</span></td>
+          <td>{% for c in sr.conditions %}{{ c.feature }} {{ '>' if c.op == 'gt' else '<' }} {{ c.threshold }}{% endfor %}</td>
+          <td class="pos">{{ '%+.2f%%'|format(sr.in_sample_lift*100) }}</td>
+          <td class="pos">{{ '%+.2f%%'|format(sr.oos_lift*100) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
 
   <h2>Event sample (latest {{ sample|length }})</h2>
   <table>

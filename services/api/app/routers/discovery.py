@@ -107,7 +107,13 @@ async def export_discovery(
     if row is None or row.scanner_id != DISCOVERY_SCANNER_ID or not row.payload:
         raise HTTPException(404, "discovery not found or not finished")
 
-    from engine.ml.discovery import DiscoveryReport, Reason, ReasonStat, TurnEvent
+    from engine.ml.discovery import (
+        DiscoveryReport,
+        Reason,
+        ReasonStat,
+        SuggestedRule,
+        TurnEvent,
+    )
 
     p = row.payload
     report = DiscoveryReport(
@@ -133,6 +139,10 @@ async def export_discovery(
         ],
         buy_reasons=[ReasonStat(**s) for s in p["buy_reasons"]],
         sell_reasons=[ReasonStat(**s) for s in p["sell_reasons"]],
+        baseline_buy_move=p.get("baseline_buy_move", 0.0),
+        baseline_sell_move=p.get("baseline_sell_move", 0.0),
+        suggested_rules=[SuggestedRule(**sr) for sr in p.get("suggested_rules", [])],
+        validated_split=p.get("validated_split", 0.6),
     )
 
     if fmt == "csv":

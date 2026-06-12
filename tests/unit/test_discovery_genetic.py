@@ -39,6 +39,54 @@ def test_discovery_reason_stats_aggregate():
             assert 0.0 < s.pct_of_events <= 1.0
 
 
+def test_discovery_validation_and_lift():
+    """Discovery must compute baseline-relative lift and an out-of-sample check."""
+    report = discover(
+        make_ohlcv(n=700, drift=0.02, amp=4.0), swing_k=3, min_move_atr=1.0, train_frac=0.6
+    )
+    assert report is not None
+    assert report.validated_split == 0.6
+    assert report.baseline_buy_move >= 0
+    for s in report.buy_reasons + report.sell_reasons:
+        # lift is avg move minus the in-sample baseline
+        assert abs((s.avg_forward_move_pct - s.baseline_move_pct) - s.lift) < 1e-6
+        assert isinstance(s.holds_up, bool)
+        # validated reasons require a positive out-of-sample lift
+        if s.holds_up:
+            assert s.oos_lift > 0 and s.lift > 0 and s.oos_count >= 3
+    # reasons are ranked with validated ones first
+    flags = [s.holds_up for s in report.buy_reasons]
+    assert flags == sorted(flags, reverse=True)
+
+
+def test_discovery_suggested_rules_are_runnable():
+    """Validated reasons become custom_rule candidates (loop closure)."""
+    report = discover(make_ohlcv(n=800, drift=0.02, amp=4.0), swing_k=3, min_move_atr=1.0)
+    assert report is not None
+    for sr in report.suggested_rules:
+        assert sr.direction in {"LONG", "SHORT"}
+        assert sr.conditions and all(
+            {"feature", "op", "threshold"} <= set(c) for c in sr.conditions
+        )
+        assert sr.oos_lift > 0  # only validated reasons are promoted
+    # a suggested rule must actually run through the custom_rule scanner
+    if report.suggested_rules:
+        from engine.features import FeatureFactory
+        from engine.scanners import ScanContext, build_scanner
+
+        sr = report.suggested_rules[0]
+        ohlcv = make_ohlcv(n=200)
+        ctx = ScanContext(
+            symbol="X",
+            timeframe=ohlcv.timeframe,
+            snapshot=FeatureFactory().build_snapshot(ohlcv),
+            ohlcv=ohlcv,
+            params={"direction": sr.direction, "conditions": sr.conditions},
+        )
+        res = build_scanner("custom_rule", ctx.params).run(ctx)
+        assert res.scanner_id == "custom_rule"
+
+
 def test_discovery_trade_style_mapping():
     scalp = discover(make_ohlcv(n=300, amp=3.0, timeframe=Timeframe.M5), min_move_atr=1.0)
     swing = discover(make_ohlcv(n=300, amp=3.0, timeframe=Timeframe.D1), min_move_atr=1.0)
