@@ -15,6 +15,8 @@ import type {
 	Backtest,
 	BacktestsResponse,
 	HealthResponse,
+	MlModel,
+	MlModelsResponse,
 	ReportSpec,
 	ScanRun,
 	Scanner,
@@ -177,6 +179,33 @@ export function listBacktests(): Promise<BacktestsResponse> {
 
 export function getBacktest(id: string): Promise<Backtest> {
 	return request<Backtest>(`/backtests/${encodeURIComponent(id)}`);
+}
+
+// --- ML models ---------------------------------------------------------------
+
+export interface TrainModelPayload {
+	scanner_id?: string;
+	symbol: string;
+	timeframe: string;
+	history: string;
+	horizon: number;
+}
+
+export function trainModel(
+	payload: TrainModelPayload
+): Promise<{ model_id: string; enqueued: boolean }> {
+	return request<{ model_id: string; enqueued: boolean }>('/ml/train', {
+		method: 'POST',
+		body: payload
+	});
+}
+
+export function listModels(): Promise<MlModelsResponse> {
+	return request<MlModelsResponse>('/ml/models');
+}
+
+export function getModel(id: string): Promise<MlModel> {
+	return request<MlModel>(`/ml/models/${encodeURIComponent(id)}`);
 }
 
 // --- Vendor API keys ---------------------------------------------------------

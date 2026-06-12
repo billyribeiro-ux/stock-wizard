@@ -4,6 +4,11 @@ from __future__ import annotations
 
 from ..schemas import ScannerSpec
 from .base import Scanner
+from .cross_asset import (
+    CrossAssetRiskScanner,
+    IndexDivergenceScanner,
+    VixTailRiskScanner,
+)
 from .insider_congress import InsiderCongressScanner
 from .levels_scanners import (
     AnchoredVwapScanner,
@@ -14,7 +19,9 @@ from .levels_scanners import (
 from .ml_scanners import AnomalyDetectionScanner, RegimeClassificationScanner
 from .mtf_structure import MtfStructureScanner
 from .options_gamma import (
+    BrokenWingButterflyScanner,
     CharmVannaScanner,
+    DealerHedgeFlowScanner,
     ExpectedMoveScanner,
     GammaExposureScanner,
     GammaSqueezeScanner,
@@ -36,6 +43,7 @@ from .price_action import (
     TrendExhaustionScanner,
 )
 from .regime import SeasonalityScanner, VolatilityRegimeScanner
+from .reversal_pullback import PullbackReasonClassifierScanner, ReversalMasterScanner
 from .spx_gamma_command import SpxGammaCommandScanner
 from .volume_profile_poc import VolumeProfilePocScanner
 from .volume_scanners import (
@@ -61,6 +69,8 @@ _SCANNER_CLASSES: list[type[Scanner]] = [
     MomentumIgnitionScanner,
     FailedMoveScanner,
     BiggerMoveScanner,
+    ReversalMasterScanner,
+    PullbackReasonClassifierScanner,
     # volume / auction
     VolumeProfilePocScanner,
     SqueezeCompressionScanner,
@@ -80,8 +90,13 @@ _SCANNER_CLASSES: list[type[Scanner]] = [
     SkewScanner,
     CharmVannaScanner,
     OptionsFlowScanner,
-    # volatility / catalyst
+    DealerHedgeFlowScanner,
+    BrokenWingButterflyScanner,
+    # volatility / cross-asset
     VolatilityRegimeScanner,
+    VixTailRiskScanner,
+    IndexDivergenceScanner,
+    CrossAssetRiskScanner,
     SeasonalityScanner,
     # catalyst / flow
     InsiderCongressScanner,

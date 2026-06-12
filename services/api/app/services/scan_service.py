@@ -46,6 +46,8 @@ _HTF = {
 }
 _NEEDS_OPTIONS = {"spx_gamma_command"}
 _NEEDS_FLOW = {"insider_congress_flow"}
+_NEEDS_AUX = {"vix_tail_risk", "index_divergence", "cross_asset_risk"}
+_AUX_SYMBOLS = ["^VIX", "SPY", "QQQ", "TLT"]
 
 
 def _start_for(history: str) -> datetime:
@@ -67,6 +69,16 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
         ohlcv_src = build_ohlcv_source("yfinance")
         opt_src = build_option_source("yfinance") if run.scanner_id in _NEEDS_OPTIONS else None
         factory = FeatureFactory()
+
+        aux: dict = {}
+        if run.scanner_id in _NEEDS_AUX:
+            for peer in _AUX_SYMBOLS:
+                try:
+                    peer_ohlcv, _ = validate(ohlcv_src.get_ohlcv(peer, timeframe, start))
+                    if len(peer_ohlcv) > 0:
+                        aux[peer] = peer_ohlcv
+                except Exception:
+                    continue
 
         for symbol in run.universe:
             ohlcv = ohlcv_src.get_ohlcv(symbol, timeframe, start)
@@ -99,6 +111,7 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
                 chain=chain,
                 insider=insider,
                 congress=congress,
+                aux=aux,
                 run_id=run_id,
             )
             result = scanner.run(ctx)

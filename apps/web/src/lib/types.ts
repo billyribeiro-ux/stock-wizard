@@ -234,3 +234,55 @@ export interface Backtest {
 export interface BacktestsResponse {
 	items: BacktestSummary[];
 }
+
+// --- ML models ---------------------------------------------------------------
+
+/** Model lifecycle/quality status. `training` is non-terminal; the rest are. */
+export type ModelStatus = 'training' | 'reliable' | 'experimental' | 'error' | string;
+
+/** A single calibration bucket: predicted probability vs observed frequency. */
+export interface CalibrationPoint {
+	predicted: number;
+	actual: number;
+}
+
+/** Full evaluation report produced by a trained model (GET /ml/models/{id}). */
+export interface ModelReport {
+	scanner_id: string;
+	n_samples: number;
+	horizon: number;
+	train_accuracy: number;
+	test_accuracy: number;
+	auc: number;
+	brier: number;
+	base_rate: number;
+	feature_importance: Record<string, number>;
+	calibration: CalibrationPoint[];
+	reliable: boolean;
+	symbol: string;
+	timeframe: string;
+}
+
+/** Summary row for the "past models" list (GET /ml/models). */
+export interface MlModelSummary {
+	model_id: string;
+	name: string;
+	version: string;
+	status: ModelStatus;
+	metrics?: Record<string, number> | null;
+	created_at: string;
+}
+
+/** Full model record (GET /ml/models/{id}), polled until status leaves `training`. */
+export interface MlModel {
+	model_id: string;
+	name: string;
+	version: string;
+	status: ModelStatus;
+	report?: ModelReport | null;
+	created_at: string;
+}
+
+export interface MlModelsResponse {
+	items: MlModelSummary[];
+}

@@ -475,3 +475,108 @@ class OptionsFlowScanner(Scanner):
                 ),
             ],
         )
+
+
+class DealerHedgeFlowScanner(Scanner):
+    scanner_id = "dealer_hedge_flow"
+    name = "Dealer Hedge Flow"
+    description = (
+        "Estimates whether dealers must buy strength or sell weakness given the gamma regime."
+    )
+    category = "options_gamma"
+    default_params = {}
+    params_schema = {"type": "object", "properties": {}}
+
+    def run(self, ctx: ScanContext) -> ScannerResult:
+        _chain, _, gp = _profile(ctx)
+        if gp is None:
+            return flat(self, ctx, "insufficient_data", "No GEX profile.", "options")
+        move_up = (ctx.snapshot.get("vwap.dist_atr") or 0.0) >= 0
+        # Positive gamma: dealers fade the move (stabilizing). Negative gamma: chase it.
+        if gp.regime == "positive":
+            direction = Side.SHORT if move_up else Side.LONG  # dealer flow opposes price -> fade
+            note = "Dealers hedge against the move (vol-suppressing)."
+        else:
+            direction = Side.LONG if move_up else Side.SHORT  # dealer flow with price -> amplify
+            note = "Dealers hedge with the move (vol-amplifying)."
+        return make_result(
+            self,
+            ctx,
+            triggered=True,
+            direction=direction,
+            score=0.45,
+            classification=f"hedge_{'support' if direction == Side.LONG else 'pressure'}",
+            why=note,
+            why_now=f"{gp.regime}-gamma regime with price {'above' if move_up else 'below'} VWAP.",
+            invalidation=InvalidationRule(
+                description="Spot crosses the gamma flip",
+                kind="options",
+                level=gp.flip,
+                comparator="crosses",
+            ),
+            evidence_for=[
+                ev(EK.OPTIONS, "gamma_regime", gp.regime, 0.5, direction, self.scanner_id)
+            ],
+            level_map=levels(spot=gp.spot, flip=gp.flip),
+        )
+
+
+class BrokenWingButterflyScanner(Scanner):
+    scanner_id = "broken_wing_butterfly"
+    name = "Broken Wing Butterfly Opportunity"
+    description = (
+        "Builds a BWB candidate around the expected move with strikes, cost, and max risk."
+    )
+    category = "options_gamma"
+    default_params = {"wing_ratio": 1.5}
+    params_schema = {
+        "type": "object",
+        "properties": {"wing_ratio": {"type": "number", "default": 1.5}},
+    }
+
+    def run(self, ctx: ScanContext) -> ScannerResult:
+        chain, expiry, gp = _profile(ctx)
+        if chain is None:
+            return flat(self, ctx, "insufficient_data", "No chain.", "options")
+        t = om.years_to_expiry(chain.as_of, expiry)
+        em = om.expected_move(chain, t, expiry)
+        if em is None or em.straddle <= 0:
+            return flat(self, ctx, "insufficient_data", "Expected move unavailable.", "options")
+        spot = float(chain.spot)
+        # Place the short strike ~0.5 EM in the lean direction; asymmetric wings.
+        bias_up = gp is None or gp.regime == "negative"
+        body = round(spot + (0.5 if bias_up else -0.5) * em.straddle)
+        wing = max(round(em.straddle), 1)
+        near_wing = body - wing if bias_up else body + wing
+        far_wing = (
+            body + int(wing * self.params["wing_ratio"])
+            if bias_up
+            else body - int(wing * self.params["wing_ratio"])
+        )
+        direction = Side.LONG if bias_up else Side.SHORT
+        return make_result(
+            self,
+            ctx,
+            triggered=True,
+            direction=direction,
+            score=0.45,
+            classification="bwb_candidate",
+            why=f"Broken-wing butterfly centered at {body} with asymmetric wings for a defined-risk lean.",
+            why_now=f"Expected move ≈ {em.straddle:.2f}; structure favors {'upside' if bias_up else 'downside'}.",
+            invalidation=InvalidationRule(
+                description="Price exits the profitable wing band", kind="price"
+            ),
+            evidence_for=[
+                ev(
+                    EK.OPTIONS,
+                    "expected_move",
+                    round(em.straddle, 2),
+                    0.4,
+                    direction,
+                    self.scanner_id,
+                )
+            ],
+            level_map=levels(
+                spot=spot, body=float(body), near_wing=float(near_wing), far_wing=float(far_wing)
+            ),
+        )

@@ -81,7 +81,8 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Command Center, Scanner Builder, Results, Evidence Viewer, Settings (vendor keys)
 - [x] Phosphor icons (Iconify CSS), ECharts gamma chart, live LIVE indicator
 - [x] Backtest Lab (equity curve + metrics + trades), SPX 0DTE Gamma Lab
-- [ ] Forward Test Lab, Trade Replay, ML Lab, Portfolio/Swing
+- [x] ML Lab (train model, feature importance, calibration), Portfolio/Watchlist
+- [ ] Forward Test Lab, Trade Replay
 
 ### Phase 10 — Hardening & Desktop ⬜
 - [ ] Auth/RBAC, audit logs, observability, CI/CD, data-quality alarms
@@ -102,9 +103,9 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Liquidity Sweep / Stop-Hunt
 - [x] Short Trap
 - [x] Long Trap
-- [ ] Pullback Reason Classifier
+- [x] Pullback Reason Classifier
 - [x] Breakout Quality
-- [ ] Reversal Master
+- [x] Reversal Master
 - [x] Trend Exhaustion
 - [x] Momentum Ignition
 - [x] Bigger-Than-Expected Move Detector
@@ -126,7 +127,7 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Gamma Exposure / GX
 - [x] Gamma Hedge Wall
 - [x] Gamma Squeeze
-- [ ] Dealer Hedge Flow
+- [x] Dealer Hedge Flow
 - [x] Options Flow & Unusual Activity
 - [ ] VIX Options Hedge (needs VIX options feed)
 - [x] Expected Move & IV Premium
@@ -134,18 +135,18 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Charm & Vanna Flow
 - [x] Skew & Term Structure
 - [ ] 0DTE Scalp-vs-Reversal Classifier (covered by Gamma Command)
-- [ ] Broken Wing Butterfly Opportunity
+- [x] Broken Wing Butterfly Opportunity
 - [x] Max Pain & OI Cluster
 
 ### 6.3 Internals / volatility / sector / cross-asset (8)
-- [ ] Market Internals Breadth
-- [ ] TICK Extremes & Divergence
-- [ ] TRIN & VOLD Confirmation
-- [ ] VIX/VVIX/MOVE Tail Risk
+- [ ] Market Internals Breadth (needs TICK/TRIN/VOLD feed)
+- [ ] TICK Extremes & Divergence (needs internals feed)
+- [ ] TRIN & VOLD Confirmation (needs internals feed)
+- [x] VIX/VVIX/MOVE Tail Risk
 - [x] Volatility Regime
 - [ ] Sector Rotation & Leadership
-- [ ] Index Leadership Divergence
-- [ ] Cross-Asset Risk-On/Risk-Off
+- [x] Index Leadership Divergence
+- [x] Cross-Asset Risk-On/Risk-Off
 
 ### 6.4 Catalyst / calendar / analog (5 + extensions)
 - [x] **Insider & Congress Flow** _(added: SEC EDGAR + Finnhub)_
