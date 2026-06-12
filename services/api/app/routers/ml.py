@@ -72,6 +72,33 @@ async def mine(
     return {"model_id": str(model_id), "enqueued": False}
 
 
+@router.get("/ml/leakage-audit")
+async def leakage_audit(symbol: str, timeframe: str = "1d", history: str = "2y") -> dict:
+    """Prove the feature pipeline is as-of-safe for this symbol (no lookahead)."""
+    from dataclasses import asdict
+    from datetime import UTC, datetime, timedelta
+
+    from engine.backtesting import audit_feature_lookahead
+    from engine.data import build_ohlcv_source, validate
+    from engine.schemas import Timeframe
+
+    from ..services.scan_service import _HISTORY_DAYS
+
+    start = datetime.now(UTC) - timedelta(days=_HISTORY_DAYS.get(history, 731))
+    ohlcv, _ = validate(
+        build_ohlcv_source("yfinance").get_ohlcv(symbol.upper(), Timeframe(timeframe), start)
+    )
+    report = audit_feature_lookahead(ohlcv)
+    if report is None:
+        raise HTTPException(422, "insufficient history for a leakage audit")
+    return {
+        "symbol": symbol.upper(),
+        "timeframe": timeframe,
+        **asdict(report),
+        "summary": report.summary,
+    }
+
+
 @router.get("/ml/models")
 async def list_models(session: AsyncSession = Depends(get_session)) -> dict:
     rows = await repo.list_models(session)
