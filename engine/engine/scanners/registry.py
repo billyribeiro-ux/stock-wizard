@@ -11,6 +11,7 @@ from .levels_scanners import (
     KeyLevelScanner,
     OpeningRangeScanner,
 )
+from .ml_scanners import AnomalyDetectionScanner, RegimeClassificationScanner
 from .mtf_structure import MtfStructureScanner
 from .options_gamma import (
     CharmVannaScanner,
@@ -84,6 +85,9 @@ _SCANNER_CLASSES: list[type[Scanner]] = [
     SeasonalityScanner,
     # catalyst / flow
     InsiderCongressScanner,
+    # ML / self-learning
+    AnomalyDetectionScanner,
+    RegimeClassificationScanner,
 ]
 
 _SCANNERS: dict[str, type[Scanner]] = {cls.scanner_id: cls for cls in _SCANNER_CLASSES}

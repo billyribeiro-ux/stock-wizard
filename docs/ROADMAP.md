@@ -65,10 +65,12 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] SvelteKit `query.live` live signal feed
 - [ ] Paper-trading engine + drift monitoring + promotion gate
 
-### Phase 7 — ML & Self-Learning ⬜
-- [ ] Label builder, feature importance, pattern discovery, regime classifier,
-      anomaly detection, genetic rule miner, Bayesian scorer, RL policy lab,
-      failure-analysis loop, confidence calibration
+### Phase 7 — ML & Self-Learning 🚧
+- [x] As-of-safe dataset/label builder, GB setup-success model with walk-forward
+      (time-ordered) split, feature importance, AUC/Brier/calibration, reliability gate
+- [x] Anomaly detection (IsolationForest) + regime classification (KMeans) scanners
+- [x] /ml/train API + worker task + model_registry persistence
+- [ ] Genetic rule miner, Bayesian scorer, RL policy lab, automated failure-analysis loop
 
 ### Phase 8 — Reports & Export ✅ (core)
 - [x] CSV export (scanner results, signals)
@@ -154,17 +156,17 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [ ] Macro Regime
 
 ### 6.5 ML / self-learning / research (12)
-- [ ] Pattern Discovery
-- [ ] Feature Importance & Evidence Miner
-- [ ] Anomaly Detection
-- [ ] Regime Classification Engine
+- [x] Pattern Discovery (KMeans regime clustering)
+- [x] Feature Importance & Evidence Miner (GB model importances)
+- [x] Anomaly Detection (IsolationForest scanner)
+- [x] Regime Classification Engine (scanner + forward-bias)
 - [ ] Genetic Rule Miner
 - [ ] Bayesian Evidence Scorer
 - [ ] Reinforcement Learning Trade Policy Lab
 - [ ] Failure Analysis
-- [ ] Confidence Calibration
+- [x] Confidence Calibration (reliability curve + Brier in model report)
 - [x] Signal Conflict Resolver _(v1 ensemble; ML upgrade pending)_
-- [ ] Self-Learning Label Builder
+- [x] Self-Learning Label Builder (forward-return dataset builder)
 - [ ] User Rule Builder & Hypothesis Lab
 
 ---

@@ -8,6 +8,7 @@ from uuid import UUID
 from schemas.models import (
     Backtest,
     EvidenceRow,
+    ModelRegistry,
     ScannerResultRow,
     ScanRun,
     SignalRow,
@@ -246,4 +247,34 @@ async def save_backtest_result(
 
 async def list_backtests(session: AsyncSession, limit: int = 50) -> list[Backtest]:
     stmt = select(Backtest).order_by(Backtest.created_at.desc()).limit(limit)
+    return list((await session.execute(stmt)).scalars().all())
+
+
+# ---- model registry ----
+async def create_model(
+    session: AsyncSession, model_id: UUID, name: str, version: str, status: str = "training"
+) -> ModelRegistry:
+    row = ModelRegistry(model_id=model_id, name=name, version=version, status=status, metrics={})
+    session.add(row)
+    await session.commit()
+    return row
+
+
+async def save_model_report(
+    session: AsyncSession, model_id: UUID, metrics: dict, status: str
+) -> None:
+    row = await session.get(ModelRegistry, model_id)
+    if row is None:
+        return
+    row.metrics = metrics
+    row.status = status
+    await session.commit()
+
+
+async def get_model(session: AsyncSession, model_id: UUID) -> ModelRegistry | None:
+    return await session.get(ModelRegistry, model_id)
+
+
+async def list_models(session: AsyncSession, limit: int = 50) -> list[ModelRegistry]:
+    stmt = select(ModelRegistry).order_by(ModelRegistry.created_at.desc()).limit(limit)
     return list((await session.execute(stmt)).scalars().all())
