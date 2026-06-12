@@ -27,8 +27,8 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Market-internals stub (TICK/TRIN/VOLD/ADD) behind the real interface
 - [x] Data validation (gaps, splits, zero-vol, out-of-hours, impossible)
 - [x] Postgres/TimescaleDB models + Alembic migration (hypertables: ohlcv, internals, option_chains)
-- [ ] Persist ingested bars/chains to Timescale (write path) 🚧
-- [ ] Continuous aggregates (1m→5m→1h), compression + retention policies
+- [x] Persist ingested OHLCV bars to Timescale (upsert) + /health data-health
+- [ ] Persist option chains; continuous aggregates (1m→5m→1h), compression + retention
 - [ ] Paid market-data adapters: Polygon, Tradier, Theta, ORATS, CBOE
 
 ### Phase 2 — Feature Factory ✅ (core)
@@ -76,9 +76,9 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [ ] Genetic rule miner, Bayesian scorer, RL policy lab, automated failure-analysis loop
 
 ### Phase 8 — Reports & Export ✅ (core)
-- [x] CSV export (scanner results, signals)
-- [x] PDF evidence report (WeasyPrint + Jinja2)
-- [ ] PDF backtest / forward-test reports, model cards, feature dumps
+- [x] CSV export (scanner results, signals, backtest trades)
+- [x] PDF evidence report + PDF backtest report (WeasyPrint + Jinja2)
+- [ ] PDF forward-test report, model cards, feature dumps
 
 ### Phase 9 — Dashboard ✅ (v1)
 - [x] Command Center, Scanner Builder, Results, Evidence Viewer, Settings (vendor keys)

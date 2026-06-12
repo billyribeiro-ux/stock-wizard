@@ -5,6 +5,7 @@ and signals, and publishes signals to Redis for the live stream.
 
 from __future__ import annotations
 
+import contextlib
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
@@ -85,6 +86,8 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
             ohlcv, _ = validate(ohlcv)
             if len(ohlcv) == 0:
                 continue
+            with contextlib.suppress(Exception):  # best-effort persistence (powers data-health)
+                await repo.save_ohlcv_bars(session, ohlcv)
 
             htf = None
             if run.scanner_id == "mtf_structure":

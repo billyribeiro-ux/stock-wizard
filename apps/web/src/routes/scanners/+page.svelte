@@ -15,7 +15,67 @@
 	let submitting = $state(false);
 	let errorMessage = $state<string | null>(null);
 
+	/** Active category filter; '' means "all categories". */
+	let categoryFilter = $state('');
+	/** Free-text filter across name + description. */
+	let searchQuery = $state('');
+
 	const symbols = $derived(parseSymbols(builder.symbolsInput));
+
+	const CATEGORY_LABELS: Record<string, string> = {
+		structure: 'Structure',
+		volume: 'Volume',
+		options_gamma: 'Options / Gamma',
+		volatility: 'Volatility',
+		catalyst: 'Catalyst',
+		ml: 'Machine Learning'
+	};
+
+	const CATEGORY_ICONS: Record<string, string> = {
+		structure: 'stack',
+		volume: 'chart-bar',
+		options_gamma: 'chart-line-up',
+		volatility: 'wave-sine',
+		catalyst: 'lightning',
+		ml: 'brain'
+	};
+
+	function categoryLabel(category: string): string {
+		return CATEGORY_LABELS[category] ?? category;
+	}
+
+	function categoryIcon(category: string): string {
+		return CATEGORY_ICONS[category] ?? 'crosshair';
+	}
+
+	/** Distinct categories present in the catalogue, in a stable preferred order. */
+	function categoriesOf(scanners: Scanner[]): string[] {
+		const order = ['structure', 'volume', 'options_gamma', 'volatility', 'catalyst', 'ml'];
+		const present = new Set(scanners.map((s) => s.category ?? 'other'));
+		const ordered = order.filter((c) => present.has(c));
+		const extras = [...present].filter((c) => !order.includes(c)).sort();
+		return [...ordered, ...extras];
+	}
+
+	/** Apply the category + search filters, then group the survivors by category. */
+	function groupedScanners(scanners: Scanner[]): { category: string; items: Scanner[] }[] {
+		const q = searchQuery.trim().toLowerCase();
+		const matches = scanners.filter((s) => {
+			if (categoryFilter && (s.category ?? 'other') !== categoryFilter) return false;
+			if (!q) return true;
+			return (
+				s.name.toLowerCase().includes(q) ||
+				s.description.toLowerCase().includes(q) ||
+				s.scanner_id.toLowerCase().includes(q)
+			);
+		});
+		const groups: { category: string; items: Scanner[] }[] = [];
+		for (const category of categoriesOf(matches)) {
+			const items = matches.filter((s) => (s.category ?? 'other') === category);
+			if (items.length > 0) groups.push({ category, items });
+		}
+		return groups;
+	}
 
 	async function submit(scanners: Scanner[]): Promise<void> {
 		errorMessage = null;

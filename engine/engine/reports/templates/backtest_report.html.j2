@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  @page { size: A4; margin: 1.6cm; }
+  body { font-family: "Helvetica Neue", Arial, sans-serif; color: #1a1d23; font-size: 11px; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  h2 { font-size: 13px; margin: 16px 0 6px; border-bottom: 1px solid #d7dbe0; padding-bottom: 3px; }
+  .muted { color: #6b7280; }
+  .cover { border-bottom: 3px solid #2563eb; padding-bottom: 10px; margin-bottom: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .card { border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; }
+  .card .label { font-size: 9px; text-transform: uppercase; color: #64748b; }
+  .card .value { font-size: 15px; font-weight: 700; }
+  .pos { color: #166534; } .neg { color: #991b1b; }
+  table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  th, td { text-align: right; padding: 3px 6px; border-bottom: 1px solid #eef1f4; }
+  th:first-child, td:first-child { text-align: left; }
+  th { background: #f8fafc; font-size: 9px; text-transform: uppercase; color: #64748b; }
+  .footer { margin-top: 20px; font-size: 9px; color: #9ca3af; }
+</style>
+</head>
+<body>
+  <div class="cover">
+    <h1>{{ title }}</h1>
+    <div class="muted">
+      {{ scanner_id }} · {{ universe }} · {{ period_start }} → {{ period_end }} · generated {{ generated_at }}
+    </div>
+  </div>
+
+  <h2>Performance</h2>
+  <div class="grid">
+    {% for k, v in stat_cards %}
+    <div class="card"><div class="label">{{ k }}</div>
+      <div class="value {{ 'pos' if v.startswith('+') else ('neg' if v.startswith('-') else '') }}">{{ v }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <h2>Trade sample (first 25)</h2>
+  <table>
+    <thead><tr><th>Entry</th><th>Side</th><th>Entry px</th><th>Exit px</th><th>P/L</th><th>Return</th><th>Exit</th></tr></thead>
+    <tbody>
+    {% for t in trades %}
+      <tr>
+        <td>{{ t.entry_ts[:16] }}</td>
+        <td>{{ t.side }}</td>
+        <td>{{ t.entry_price }}</td>
+        <td>{{ t.exit_price }}</td>
+        <td class="{{ 'pos' if (t.pnl|float) > 0 else 'neg' }}">{{ t.pnl }}</td>
+        <td>{{ '%.2f%%'|format((t.return_pct|float) * 100) if t.return_pct is not none else '' }}</td>
+        <td>{{ t.exit_reason }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    Stock Wizard backtest report. Past performance is simulated and not indicative of future
+    results; promote a strategy only after walk-forward + forward testing. Not financial advice.
+  </div>
+</body>
+</html>

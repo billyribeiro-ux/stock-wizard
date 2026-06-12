@@ -9,15 +9,69 @@ from schemas.models import (
     Backtest,
     EvidenceRow,
     ModelRegistry,
+    Ohlcv,
     ScannerResultRow,
     ScanRun,
     SignalRow,
     VendorKey,
 )
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from engine.schemas import ScannerResult, SignalPacket
+from engine.schemas import OHLCV, ScannerResult, SignalPacket
+
+
+# ---- market data persistence ----
+async def save_ohlcv_bars(session: AsyncSession, ohlcv: OHLCV, cap: int = 5000) -> int:
+    """Upsert recent bars into the Timescale hypertable (on-conflict-do-nothing)."""
+    bars = ohlcv.bars[-cap:]
+    if not bars:
+        return 0
+    rows = [
+        {
+            "symbol": b.symbol,
+            "timeframe": b.timeframe.value,
+            "ts": b.ts,
+            "source": b.source,
+            "open": b.open,
+            "high": b.high,
+            "low": b.low,
+            "close": b.close,
+            "volume": b.volume,
+            "vwap": b.vwap,
+            "is_adjusted": b.is_adjusted,
+            "quality_flags": [f.value for f in b.quality_flags],
+        }
+        for b in bars
+    ]
+    stmt = (
+        pg_insert(Ohlcv)
+        .values(rows)
+        .on_conflict_do_nothing(index_elements=["symbol", "timeframe", "ts", "source"])
+    )
+    await session.execute(stmt)
+    await session.commit()
+    return len(rows)
+
+
+async def data_health(session: AsyncSession) -> list[dict]:
+    """Latest stored bar per (symbol, timeframe) with its age in seconds."""
+    stmt = select(Ohlcv.symbol, Ohlcv.timeframe, func.max(Ohlcv.ts).label("last_ts")).group_by(
+        Ohlcv.symbol, Ohlcv.timeframe
+    )
+    rows = (await session.execute(stmt)).all()
+    out = []
+    for symbol, timeframe, last_ts in rows:
+        age = (datetime.now(UTC) - last_ts).total_seconds() if last_ts else None
+        out.append(
+            {
+                "symbol": symbol,
+                "timeframe": timeframe,
+                "last_bar_age_seconds": int(age) if age is not None else None,
+            }
+        )
+    return out
 
 
 # ---- scan runs ----

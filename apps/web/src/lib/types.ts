@@ -106,11 +106,25 @@ export interface JsonSchema {
 	required?: string[];
 }
 
+/** Broad grouping the engine assigns each scanner. */
+export type ScannerCategory =
+	| 'structure'
+	| 'volume'
+	| 'options_gamma'
+	| 'volatility'
+	| 'catalyst'
+	| 'ml'
+	| string;
+
 export interface Scanner {
 	scanner_id: string;
 	name: string;
 	description: string;
 	params_schema: JsonSchema;
+	/** Broad grouping used to organize the scanner picker. */
+	category?: ScannerCategory;
+	/** Default parameter values declared by the scanner. */
+	default_params?: Record<string, unknown>;
 }
 
 export type ScanStatus = 'queued' | 'running' | 'finished' | 'error' | string;
@@ -233,6 +247,52 @@ export interface Backtest {
 
 export interface BacktestsResponse {
 	items: BacktestSummary[];
+}
+
+// --- Forward tests -----------------------------------------------------------
+
+/** Recommendation produced by a forward test. */
+export type Promotion = 'promote' | 'keep_testing' | 'retire' | string;
+
+/** Monte-Carlo resampling summary over the out-of-sample trades. */
+export interface MonteCarloReport {
+	prob_profit: number;
+	median_return: number;
+	p05_return: number;
+	p95_return: number;
+	median_max_dd: number;
+	worst_max_dd: number;
+}
+
+/** One window of a walk-forward analysis. */
+export interface WalkForwardSplit {
+	split: number;
+	period_start: string;
+	period_end: string;
+	metrics: BacktestMetrics;
+}
+
+/**
+ * Forward-test payload, returned on the standard `Backtest.result` when the
+ * run was created with `params.mode = "forward"`. Extends `BacktestResult`
+ * (trades, equity_curve, metrics, period) with promotion analysis.
+ */
+export interface ForwardReport extends BacktestResult {
+	promotion: Promotion;
+	rationale: string;
+	/** In-sample (training split) metrics. */
+	baseline: BacktestMetrics;
+	/** Out-of-sample (test split) metrics. */
+	forward: BacktestMetrics;
+	/** Per-metric forward − baseline deltas. */
+	drift: Partial<BacktestMetrics>;
+	monte_carlo: MonteCarloReport;
+	walk_forward: WalkForwardSplit[];
+}
+
+/** Full forward-test record (GET /backtests/{id} for a forward run). */
+export interface ForwardTest extends Omit<Backtest, 'result'> {
+	result?: ForwardReport | null;
 }
 
 // --- ML models ---------------------------------------------------------------

@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+import csv
+import io
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from engine.reports import render_evidence_pdf, scanner_results_to_csv
-from engine.schemas import ScannerResult
+from engine.reports import render_backtest_pdf, render_evidence_pdf, scanner_results_to_csv
+from engine.schemas import BacktestResult, ScannerResult
 
 from ..db import get_session
 from ..repositories import repo
@@ -44,4 +46,50 @@ async def export_scan(
         content=pdf,
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="scan_{run_id}.pdf"'},
+    )
+
+
+@router.get("/exports/backtest/{backtest_id}")
+async def export_backtest(
+    backtest_id: UUID,
+    fmt: str = Query("pdf", pattern="^(csv|pdf)$"),
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    bt = await repo.get_backtest(session, backtest_id)
+    if bt is None or not bt.payload:
+        raise HTTPException(404, "backtest not found or not finished")
+    result = BacktestResult.model_validate(bt.payload)
+
+    if fmt == "csv":
+        buf = io.StringIO()
+        cols = [
+            "entry_ts",
+            "side",
+            "entry_price",
+            "exit_ts",
+            "exit_price",
+            "pnl",
+            "return_pct",
+            "mfe",
+            "mae",
+            "exit_reason",
+        ]
+        w = csv.DictWriter(buf, fieldnames=cols, extrasaction="ignore")
+        w.writeheader()
+        for t in result.trades:
+            row = t.model_dump(mode="json")
+            w.writerow({c: row.get(c, "") for c in cols})
+        return Response(
+            content=buf.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="backtest_{backtest_id}.csv"'},
+        )
+    try:
+        pdf = render_backtest_pdf(result, title=f"Backtest {bt.scanner_id}")
+    except Exception as exc:
+        raise HTTPException(500, f"PDF rendering unavailable: {exc}") from exc
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="backtest_{backtest_id}.pdf"'},
     )
