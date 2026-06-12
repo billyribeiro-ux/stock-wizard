@@ -1,6 +1,7 @@
 """Backtesting engine + metrics + walk-forward / forward testing."""
 
 from .engine import BacktestConfig, BacktestEngine
+from .failure import FailureAnalysis, analyze_failures
 from .metrics import compute_metrics, max_drawdown
 from .walkforward import ForwardTest, MonteCarlo, forward_test, monte_carlo, walk_forward
 
@@ -14,4 +15,6 @@ __all__ = [
     "monte_carlo",
     "ForwardTest",
     "MonteCarlo",
+    "analyze_failures",
+    "FailureAnalysis",
 ]

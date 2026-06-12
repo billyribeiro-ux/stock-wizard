@@ -64,6 +64,11 @@ def build_signal(
 
     computed = ["gamma", "iv"] if result.scanner_id == "spx_gamma_command" else []
 
+    # Bayesian posterior from the evidence stack (prior = scanner score).
+    from ..evidence.bayesian import confidence_band
+
+    band = confidence_band(result.evidence, prior=max(0.05, min(0.95, result.score)))
+
     return SignalPacket(
         run_id=result.run_id,
         source_scanner=result.scanner_id,
@@ -75,6 +80,7 @@ def build_signal(
         state=SignalState.PROPOSED,
         trade_style=_trade_style(result.timeframe),
         score=result.score,
+        confidence_band=band,
         regime=snapshot.regime if snapshot else Regime.UNKNOWN,
         classification=result.classification,
         entry=plan.entry if plan else None,

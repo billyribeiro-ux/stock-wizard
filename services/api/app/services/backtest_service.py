@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from engine.backtesting import BacktestConfig, BacktestEngine, forward_test, walk_forward
+from engine.backtesting import (
+    BacktestConfig,
+    BacktestEngine,
+    analyze_failures,
+    forward_test,
+    walk_forward,
+)
 from engine.data import build_ohlcv_source, validate
 from engine.schemas import Timeframe
 
@@ -73,6 +80,7 @@ async def execute_backtest(session, backtest_id: UUID) -> dict:
         for t in result.trades:
             t.symbol = symbol
         payload = result.model_dump(mode="json")
+        payload["failure_analysis"] = asdict(analyze_failures(result.trades))
         await repo.save_backtest_result(
             session, backtest_id, metrics=result.metrics.model_dump(mode="json"), payload=payload
         )

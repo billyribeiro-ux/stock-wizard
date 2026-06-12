@@ -162,7 +162,7 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [ ] Economic Calendar
 - [x] Earnings & Guidance (Finnhub: event risk + post-earnings drift)
 - [x] Seasonality & Similar-Day
-- [ ] Macro Regime
+- [x] Macro Regime (VIX + equities + bonds)
 
 ### 6.5 ML / self-learning / research (12)
 - [x] Pattern Discovery (KMeans regime clustering)
@@ -170,9 +170,9 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Anomaly Detection (IsolationForest scanner)
 - [x] Regime Classification Engine (scanner + forward-bias)
 - [ ] Genetic Rule Miner
-- [ ] Bayesian Evidence Scorer
+- [x] Bayesian Evidence Scorer (log-odds posterior + confidence band, wired into signals)
 - [ ] Reinforcement Learning Trade Policy Lab
-- [ ] Failure Analysis
+- [x] Failure Analysis (tags losing trades by reason; in every backtest payload)
 - [x] Confidence Calibration (reliability curve + Brier in model report)
 - [x] Signal Conflict Resolver _(v1 ensemble; ML upgrade pending)_
 - [x] Self-Learning Label Builder (forward-return dataset builder)

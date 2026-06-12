@@ -48,7 +48,13 @@ _HTF = {
 _NEEDS_OPTIONS = {"spx_gamma_command"}
 _NEEDS_FLOW = {"insider_congress_flow"}
 _NEEDS_EARNINGS = {"earnings_guidance"}
-_NEEDS_AUX = {"vix_tail_risk", "index_divergence", "cross_asset_risk", "sector_rotation"}
+_NEEDS_AUX = {
+    "vix_tail_risk",
+    "index_divergence",
+    "cross_asset_risk",
+    "sector_rotation",
+    "macro_regime",
+}
 _AUX_SYMBOLS = ["^VIX", "SPY", "QQQ", "TLT"]
 _SECTOR_ETFS = ["XLK", "XLF", "XLE", "XLV", "XLY", "XLP", "XLI", "XLU", "XLB", "XLRE", "XLC"]
 

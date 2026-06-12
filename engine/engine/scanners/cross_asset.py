@@ -196,6 +196,52 @@ class SectorRotationScanner(Scanner):
         )
 
 
+class MacroRegimeScanner(Scanner):
+    scanner_id = "macro_regime"
+    name = "Macro Regime"
+    description = "Classifies the broad environment (liquidity-on / risk-off / tightening) from VIX, equities, bonds."
+    category = "volatility"
+    default_params = {}
+    params_schema = {"type": "object", "properties": {}}
+
+    def run(self, ctx: ScanContext) -> ScannerResult:
+        vix = ctx.aux.get("^VIX")
+        spy = _returns(ctx.aux.get("SPY"), 20)
+        tlt = _returns(ctx.aux.get("TLT"), 20)
+        if vix is None or spy is None:
+            return flat(self, ctx, "no_macro_data", "Macro inputs unavailable.", "internals")
+        vdf = ohlcv_to_frame(vix)
+        vix_level = float(vdf["close"].iloc[-1])
+        spy_20 = float((1 + spy.iloc[-20:]).prod() - 1)
+        tlt_20 = float((1 + tlt.iloc[-20:]).prod() - 1) if tlt is not None else 0.0
+
+        if vix_level >= 28:
+            regime, direction = "risk_off", Side.SHORT
+        elif vix_level <= 15 and spy_20 > 0:
+            regime, direction = "liquidity_on", Side.LONG
+        elif tlt_20 < -0.02 and spy_20 < 0:
+            regime, direction = "tightening", Side.SHORT
+        elif spy_20 > 0:
+            regime, direction = "risk_on", Side.LONG
+        else:
+            regime, direction = "neutral", Side.NEUTRAL
+        return make_result(
+            self,
+            ctx,
+            triggered=regime not in ("neutral",),
+            direction=direction if direction != Side.NEUTRAL else None,
+            score=0.5,
+            classification=regime,
+            why=f"Macro regime: {regime.replace('_', ' ')} (VIX {vix_level:.1f}, SPY 20d {spy_20:+.1%}, TLT {tlt_20:+.1%}).",
+            why_now="Broad environment gates which strategy families are favored.",
+            invalidation=InvalidationRule(description="Macro regime shifts", kind="internals"),
+            evidence_for=[
+                ev(EK.INTERNAL, "vix_level", round(vix_level, 1), 0.4, direction, self.scanner_id),
+                ev(EK.INTERNAL, "spy_20d", round(spy_20, 4), 0.3, direction, self.scanner_id),
+            ],
+        )
+
+
 class CrossAssetRiskScanner(Scanner):
     scanner_id = "cross_asset_risk"
     name = "Cross-Asset Risk-On/Risk-Off"

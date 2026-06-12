@@ -8,6 +8,7 @@ from .catalyst_scanners import EarningsGuidanceScanner
 from .cross_asset import (
     CrossAssetRiskScanner,
     IndexDivergenceScanner,
+    MacroRegimeScanner,
     SectorRotationScanner,
     VixTailRiskScanner,
 )
@@ -100,6 +101,7 @@ _SCANNER_CLASSES: list[type[Scanner]] = [
     IndexDivergenceScanner,
     CrossAssetRiskScanner,
     SectorRotationScanner,
+    MacroRegimeScanner,
     SeasonalityScanner,
     # catalyst / flow
     InsiderCongressScanner,
