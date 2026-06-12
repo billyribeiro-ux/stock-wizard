@@ -47,8 +47,9 @@ _HTF = {
 }
 _NEEDS_OPTIONS = {"spx_gamma_command"}
 _NEEDS_FLOW = {"insider_congress_flow"}
-_NEEDS_AUX = {"vix_tail_risk", "index_divergence", "cross_asset_risk"}
+_NEEDS_AUX = {"vix_tail_risk", "index_divergence", "cross_asset_risk", "sector_rotation"}
 _AUX_SYMBOLS = ["^VIX", "SPY", "QQQ", "TLT"]
+_SECTOR_ETFS = ["XLK", "XLF", "XLE", "XLV", "XLY", "XLP", "XLI", "XLU", "XLB", "XLRE", "XLC"]
 
 
 def _start_for(history: str) -> datetime:
@@ -73,7 +74,8 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
 
         aux: dict = {}
         if run.scanner_id in _NEEDS_AUX:
-            for peer in _AUX_SYMBOLS:
+            peers = _SECTOR_ETFS if run.scanner_id == "sector_rotation" else _AUX_SYMBOLS
+            for peer in peers:
                 try:
                     peer_ohlcv, _ = validate(ohlcv_src.get_ohlcv(peer, timeframe, start))
                     if len(peer_ohlcv) > 0:

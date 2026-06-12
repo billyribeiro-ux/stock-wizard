@@ -136,29 +136,74 @@
 
 	{#snippet builderForm(scanners: Scanner[])}
 		{@const selected = scanners.find((s) => s.scanner_id === builder.scannerId)}
+		{@const groups = groupedScanners(scanners)}
 		<div class="grid gap-6 lg:grid-cols-[18rem_1fr]">
 			<!-- Scanner picker -->
-			<aside class="space-y-2">
-				<h2 class="text-xs font-medium tracking-wide text-base-400 uppercase">Scanner</h2>
-				{#each scanners as scanner (scanner.scanner_id)}
-					<button
-						type="button"
-						onclick={() => selectScanner(scanner)}
-						class="w-full rounded-lg border p-3 text-left transition-colors"
-						class:border-accent={builder.scannerId === scanner.scanner_id}
-						class:bg-base-850={builder.scannerId === scanner.scanner_id}
-						class:border-base-700={builder.scannerId !== scanner.scanner_id}
-						class:hover:border-base-600={builder.scannerId !== scanner.scanner_id}
-					>
-						<div class="flex items-center gap-2 text-sm font-semibold text-base-100">
-							<Icon name="crosshair" class="text-accent" />
-							{scanner.name}
-						</div>
-						<p class="mt-1 line-clamp-2 text-xs text-base-400">{scanner.description}</p>
-					</button>
+			<aside class="space-y-3">
+				<div class="flex items-center justify-between">
+					<h2 class="text-xs font-medium tracking-wide text-base-400 uppercase">Scanner</h2>
+					<span class="text-[11px] text-base-500">{scanners.length} total</span>
+				</div>
+
+				<!-- Category filter + search -->
+				<div class="space-y-2">
+					<label class="block">
+						<span class="mb-1 flex items-center gap-1.5 text-[11px] text-base-500">
+							<Icon name="funnel" />
+							Category
+						</span>
+						<select
+							bind:value={categoryFilter}
+							class="w-full rounded-md border border-base-700 bg-base-900 px-2.5 py-1.5 text-xs text-base-100 outline-none focus:border-accent"
+						>
+							<option value="">All categories</option>
+							{#each categoriesOf(scanners) as category (category)}
+								<option value={category}>{categoryLabel(category)}</option>
+							{/each}
+						</select>
+					</label>
+					<input
+						type="text"
+						bind:value={searchQuery}
+						placeholder="Search scanners…"
+						class="w-full rounded-md border border-base-700 bg-base-900 px-2.5 py-1.5 text-xs text-base-100 outline-none focus:border-accent"
+					/>
+				</div>
+
+				{#if groups.length === 0}
+					<p class="text-sm text-base-500">No scanners match your filters.</p>
 				{:else}
-					<p class="text-sm text-base-500">No scanners registered.</p>
-				{/each}
+					<div class="space-y-4">
+						{#each groups as group (group.category)}
+							<div class="space-y-2">
+								<h3
+									class="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-base-500 uppercase"
+								>
+									<Icon name={categoryIcon(group.category)} class="text-accent" />
+									{categoryLabel(group.category)}
+									<span class="font-normal text-base-600">({group.items.length})</span>
+								</h3>
+								{#each group.items as scanner (scanner.scanner_id)}
+									<button
+										type="button"
+										onclick={() => selectScanner(scanner)}
+										class="w-full rounded-lg border p-3 text-left transition-colors"
+										class:border-accent={builder.scannerId === scanner.scanner_id}
+										class:bg-base-850={builder.scannerId === scanner.scanner_id}
+										class:border-base-700={builder.scannerId !== scanner.scanner_id}
+										class:hover:border-base-600={builder.scannerId !== scanner.scanner_id}
+									>
+										<div class="flex items-center gap-2 text-sm font-semibold text-base-100">
+											<Icon name="crosshair" class="text-accent" />
+											{scanner.name}
+										</div>
+										<p class="mt-1 line-clamp-2 text-xs text-base-400">{scanner.description}</p>
+									</button>
+								{/each}
+							</div>
+						{/each}
+					</div>
+				{/if}
 			</aside>
 
 			<!-- Config form -->

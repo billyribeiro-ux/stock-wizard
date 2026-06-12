@@ -147,7 +147,7 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [ ] TRIN & VOLD Confirmation (needs internals feed)
 - [x] VIX/VVIX/MOVE Tail Risk
 - [x] Volatility Regime
-- [ ] Sector Rotation & Leadership
+- [x] Sector Rotation & Leadership
 - [x] Index Leadership Divergence
 - [x] Cross-Asset Risk-On/Risk-Off
 

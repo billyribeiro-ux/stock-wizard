@@ -130,6 +130,72 @@ class IndexDivergenceScanner(Scanner):
         )
 
 
+SECTOR_ETFS = ["XLK", "XLF", "XLE", "XLV", "XLY", "XLP", "XLI", "XLU", "XLB", "XLRE", "XLC"]
+
+
+class SectorRotationScanner(Scanner):
+    scanner_id = "sector_rotation"
+    name = "Sector Rotation & Leadership"
+    description = (
+        "Ranks sector ETFs by momentum to reveal leadership/rotation and where the symbol sits."
+    )
+    category = "volatility"
+    default_params = {"window": 20}
+    params_schema = {
+        "type": "object",
+        "properties": {"window": {"type": "integer", "default": 20}},
+    }
+
+    def run(self, ctx: ScanContext) -> ScannerResult:
+        n = self.params["window"]
+        ranks: list[tuple[str, float]] = []
+        for etf in SECTOR_ETFS:
+            r = _returns(ctx.aux.get(etf), n)
+            if r is None or len(r) < n:
+                continue
+            ranks.append((etf, float((1 + r.iloc[-n:]).prod() - 1)))
+        if len(ranks) < 3:
+            return flat(self, ctx, "no_sector_data", "Sector ETF data unavailable.", "internals")
+        ranks.sort(key=lambda kv: kv[1], reverse=True)
+        leaders = ranks[:3]
+        laggards = ranks[-3:]
+        breadth = sum(1 for _, v in ranks if v > 0) / len(ranks)
+        direction = Side.LONG if breadth >= 0.5 else Side.SHORT
+        return make_result(
+            self,
+            ctx,
+            triggered=True,
+            direction=direction,
+            score=abs(breadth - 0.5) * 2,
+            classification="broad_strength"
+            if breadth >= 0.6
+            else ("broad_weakness" if breadth <= 0.4 else "mixed_rotation"),
+            why=f"Sector breadth {breadth:.0%}; leaders {', '.join(e for e, _ in leaders)}.",
+            why_now=f"Top: {leaders[0][0]} {leaders[0][1]:+.1%}; bottom: {laggards[-1][0]} {laggards[-1][1]:+.1%}.",
+            invalidation=InvalidationRule(
+                description="Sector leadership rotates", kind="internals"
+            ),
+            evidence_for=[
+                ev(
+                    EK.INTERNAL,
+                    "sector_breadth",
+                    round(breadth, 2),
+                    0.5,
+                    direction,
+                    self.scanner_id,
+                ),
+                ev(
+                    EK.INTERNAL,
+                    "leaders",
+                    ", ".join(e for e, _ in leaders),
+                    0.3,
+                    direction,
+                    self.scanner_id,
+                ),
+            ],
+        )
+
+
 class CrossAssetRiskScanner(Scanner):
     scanner_id = "cross_asset_risk"
     name = "Cross-Asset Risk-On/Risk-Off"

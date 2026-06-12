@@ -7,6 +7,7 @@ from .base import Scanner
 from .cross_asset import (
     CrossAssetRiskScanner,
     IndexDivergenceScanner,
+    SectorRotationScanner,
     VixTailRiskScanner,
 )
 from .insider_congress import InsiderCongressScanner
@@ -97,6 +98,7 @@ _SCANNER_CLASSES: list[type[Scanner]] = [
     VixTailRiskScanner,
     IndexDivergenceScanner,
     CrossAssetRiskScanner,
+    SectorRotationScanner,
     SeasonalityScanner,
     # catalyst / flow
     InsiderCongressScanner,
