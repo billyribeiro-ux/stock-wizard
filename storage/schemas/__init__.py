@@ -2,6 +2,7 @@
 
 from .models import (
     HYPERTABLES,
+    Backtest,
     Base,
     DataQualityEvent,
     EvidenceRow,
@@ -17,6 +18,7 @@ from .models import (
 
 __all__ = [
     "HYPERTABLES",
+    "Backtest",
     "Base",
     "DataQualityEvent",
     "EvidenceRow",

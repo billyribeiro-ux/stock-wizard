@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from schemas.models import (
+    Backtest,
     EvidenceRow,
     ScannerResultRow,
     ScanRun,
@@ -188,3 +189,61 @@ async def delete_vendor_key(session: AsyncSession, key_id: UUID) -> bool:
     await session.delete(row)
     await session.commit()
     return True
+
+
+# ---- backtests ----
+async def create_backtest(
+    session: AsyncSession,
+    backtest_id: UUID,
+    scanner_id: str,
+    timeframe: str,
+    universe: list[str],
+    params: dict,
+) -> Backtest:
+    row = Backtest(
+        backtest_id=backtest_id,
+        scanner_id=scanner_id,
+        timeframe=timeframe,
+        universe=universe,
+        params=params,
+        status="queued",
+    )
+    session.add(row)
+    await session.commit()
+    return row
+
+
+async def get_backtest(session: AsyncSession, backtest_id: UUID) -> Backtest | None:
+    return await session.get(Backtest, backtest_id)
+
+
+async def set_backtest_status(
+    session: AsyncSession, backtest_id: UUID, status: str, error: str | None = None
+) -> None:
+    row = await session.get(Backtest, backtest_id)
+    if row is None:
+        return
+    row.status = status
+    if error:
+        row.error = error
+    if status in {"done", "error"}:
+        row.finished_at = datetime.now(UTC)
+    await session.commit()
+
+
+async def save_backtest_result(
+    session: AsyncSession, backtest_id: UUID, metrics: dict, payload: dict
+) -> None:
+    row = await session.get(Backtest, backtest_id)
+    if row is None:
+        return
+    row.metrics = metrics
+    row.payload = payload
+    row.status = "done"
+    row.finished_at = datetime.now(UTC)
+    await session.commit()
+
+
+async def list_backtests(session: AsyncSession, limit: int = 50) -> list[Backtest]:
+    stmt = select(Backtest).order_by(Backtest.created_at.desc()).limit(limit)
+    return list((await session.execute(stmt)).scalars().all())

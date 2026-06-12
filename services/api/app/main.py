@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db import engine
-from .routers import exports, health, results, scanners, scans, vendors
+from .routers import backtests, exports, health, results, scanners, scans, vendors
 
 
 @asynccontextmanager
@@ -34,6 +34,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(scanners.router)
     app.include_router(scans.router)
+    app.include_router(backtests.router)
     app.include_router(results.router)
     app.include_router(vendors.router)
     app.include_router(exports.router)
