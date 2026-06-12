@@ -9,6 +9,7 @@ from .dataset import Dataset, build_dataset, compute_feature_frame
 from .discovery import DiscoveryReport, SuggestedRule, TurnEvent, discover
 from .genetic import MinedRule, MinerConfig, mine_rules
 from .info_theory import InfoReport, binary_entropy, mutual_information_ranking
+from .meta_labeling import MetaModel, MetaResult, build_meta_model
 from .models import ModelReport, train_setup_model
 from .regime import RegimeResult, classify_regime
 from .rl_lab import RLConfig, RLReport, train_policy
@@ -40,6 +41,9 @@ __all__ = [
     "InfoReport",
     "binary_entropy",
     "purged_walk_forward_splits",
+    "build_meta_model",
+    "MetaModel",
+    "MetaResult",
     "train_policy",
     "RLConfig",
     "RLReport",

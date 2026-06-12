@@ -44,6 +44,43 @@ async def execute_mining(
     return payload
 
 
+async def execute_meta(
+    session,
+    model_id: UUID,
+    scanner_id: str,
+    symbol: str,
+    timeframe: str,
+    history: str,
+    horizon: int,
+) -> dict:
+    """Meta-labeling: train a 'should I take this signal' model on the primary's history."""
+    from dataclasses import asdict
+
+    from engine.ml import build_meta_model
+
+    days = _HISTORY_DAYS.get(history, 1827)
+    start = datetime.now(UTC) - timedelta(days=days)
+    ohlcv = build_ohlcv_source("yfinance").get_ohlcv(symbol, Timeframe(timeframe), start)
+    ohlcv, _ = validate(ohlcv)
+
+    result = build_meta_model(scanner_id, ohlcv, horizon=horizon)
+    payload = {
+        "scanner_id": scanner_id,
+        "symbol": symbol,
+        "timeframe": timeframe,
+        "horizon": horizon,
+        **asdict(result.report),
+    }
+    if not result.report.fitted:
+        status = "error"
+    elif result.report.lift_vs_primary > 0 and result.report.meta_cv_auc > 0.55:
+        status = "reliable"
+    else:
+        status = "experimental"
+    await repo.save_model_report(session, model_id, payload, status)
+    return payload
+
+
 async def execute_calibration(
     session,
     model_id: UUID,
