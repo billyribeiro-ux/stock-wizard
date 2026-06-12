@@ -80,5 +80,8 @@ export const ICON_SAFELIST = [
 	'icon-[ph--lightbulb]',
 	'icon-[ph--list-checks]',
 	'icon-[ph--file-csv]',
-	'icon-[ph--file-pdf]'
+	'icon-[ph--file-pdf]',
+	'icon-[ph--function]',
+	'icon-[ph--link]',
+	'icon-[ph--magnifying-glass-plus]'
 ] as const;

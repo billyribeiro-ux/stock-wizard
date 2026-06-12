@@ -15,6 +15,7 @@
 		{ href: '/replay', label: 'Trade Replay', icon: 'play-circle' },
 		{ href: '/forward', label: 'Forward Test', icon: 'test-tube' },
 		{ href: '/ml', label: 'ML Lab', icon: 'brain' },
+		{ href: '/ml/advanced', label: 'Self-Learning', icon: 'function' },
 		{ href: '/portfolio', label: 'Portfolio', icon: 'briefcase' },
 		{ href: '/gamma', label: 'SPX Gamma Lab', icon: 'chart-bar' },
 		{ href: '/alerts', label: 'Alerts', icon: 'bell' },
