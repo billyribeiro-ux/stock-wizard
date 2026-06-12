@@ -6,6 +6,7 @@ from .discovery import DiscoveryReport, TurnEvent, discover
 from .genetic import MinedRule, MinerConfig, mine_rules
 from .models import ModelReport, train_setup_model
 from .regime import RegimeResult, classify_regime
+from .rl_lab import RLConfig, RLReport, train_policy
 
 __all__ = [
     "build_dataset",
@@ -23,4 +24,7 @@ __all__ = [
     "discover",
     "DiscoveryReport",
     "TurnEvent",
+    "train_policy",
+    "RLConfig",
+    "RLReport",
 ]

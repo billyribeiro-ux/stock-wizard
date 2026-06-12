@@ -88,8 +88,10 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Backtest Lab (equity curve + metrics + trades), SPX 0DTE Gamma Lab
 - [x] ML Lab (train model, feature importance, calibration), Portfolio/Watchlist
 - [x] Forward Test Lab (promotion verdict, drift, Monte-Carlo, walk-forward)
-- [x] Scanner Builder grouped/filterable across all 43 scanners by category
-- [ ] Trade Replay
+- [x] Scanner Builder grouped/filterable across the whole catalog by category
+- [x] Trade Replay (step/play through any finished backtest, drawing equity curve)
+- [x] Alerts page (rule CRUD + delivery history)
+- [x] Discovery Lab (style presets, custom lookback, reason tables, CSV/PDF downloads)
 
 ### Phase 10 — Hardening & Desktop 🚧
 - [x] CI/CD (GitHub Actions: ruff + pytest, svelte-check + build)
@@ -174,7 +176,8 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] **Self-Learning Discovery** (replays any lookback of history, self-identifies WHY
       each turn was bought/sold per trade style; CSV + PDF exports; /discovery API)
 - [x] Bayesian Evidence Scorer (log-odds posterior + confidence band, wired into signals)
-- [ ] Reinforcement Learning Trade Policy Lab
+- [x] Reinforcement Learning Trade Policy Lab (tabular Q-learning, walk-forward
+      evaluated vs buy-and-hold; research-only, never auto-promoted)
 - [x] Failure Analysis (tags losing trades by reason; in every backtest payload)
 - [x] Confidence Calibration (reliability curve + Brier in model report)
 - [x] Signal Conflict Resolver _(v1 ensemble; ML upgrade pending)_
