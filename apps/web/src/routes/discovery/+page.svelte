@@ -572,9 +572,110 @@
 
 							<!-- Reason tables -->
 							<div class="grid gap-6 xl:grid-cols-2">
-								{@render reasonTable('Why it was BOUGHT', 'long', report.buy_reasons)}
-								{@render reasonTable('Why it was SOLD', 'short', report.sell_reasons)}
+								{@render reasonTable(
+									'Why it was BOUGHT',
+									'long',
+									report.buy_reasons,
+									report.baseline_buy_move
+								)}
+								{@render reasonTable(
+									'Why it was SOLD',
+									'short',
+									report.sell_reasons,
+									report.baseline_sell_move
+								)}
 							</div>
+
+							<!-- Promotable rules -->
+							{#if report.suggested_rules && report.suggested_rules.length > 0}
+								<section class="rounded-lg border border-base-700 bg-base-850 p-4">
+									<h3 class="mb-1 flex items-center gap-2 text-sm font-semibold text-base-100">
+										<Icon name="magnifying-glass-plus" class="text-accent" />
+										Promotable rules
+									</h3>
+									<p class="mb-3 text-xs text-base-500">
+										Validated edges distilled into concrete rules. Promote one to launch a live scan.
+									</p>
+									<ul class="space-y-3">
+										{#each report.suggested_rules as rule (rule.name)}
+											<li
+												class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-base-700 bg-base-900 p-3"
+											>
+												<div class="min-w-0">
+													<div class="flex items-center gap-2">
+														<span
+															class="rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase {rule.direction ===
+															'LONG'
+																? 'bg-long-soft text-long'
+																: 'bg-short-soft text-short'}"
+														>
+															{rule.direction}
+														</span>
+														<span class="truncate text-sm font-medium text-base-100">{rule.name}</span>
+													</div>
+													<div class="mt-1 font-mono text-xs text-base-300">
+														{conditionText(rule)}
+													</div>
+													<div class="mt-1 flex items-center gap-3 text-[11px] text-base-500">
+														<span>
+															in-sample lift
+															<span
+																class="font-mono"
+																class:text-long={rule.in_sample_lift > 0}
+																class:text-short={rule.in_sample_lift < 0}
+															>
+																{fmtLift(rule.in_sample_lift)}
+															</span>
+														</span>
+														<span>
+															OOS lift
+															<span
+																class="font-mono"
+																class:text-long={rule.oos_lift > 0}
+																class:text-short={rule.oos_lift < 0}
+															>
+																{fmtLift(rule.oos_lift)}
+															</span>
+														</span>
+													</div>
+												</div>
+												<div class="flex flex-col items-end gap-1.5">
+													{#if promotedRun[rule.name]}
+														<a
+															href={`/results?run=${promotedRun[rule.name]}`}
+															class="flex items-center gap-1.5 rounded-md border border-ok/40 bg-base-850 px-3 py-1.5 text-xs font-medium text-ok transition-colors hover:border-ok"
+														>
+															<Icon name="check-circle" />
+															view run {promotedRun[rule.name].slice(0, 8)}
+														</a>
+													{:else}
+														<button
+															type="button"
+															onclick={() => promote(report, rule)}
+															disabled={promoting[rule.name]}
+															class="flex items-center gap-1.5 rounded-md bg-accent-strong px-3 py-1.5 text-xs font-semibold text-base-950 transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+														>
+															{#if promoting[rule.name]}
+																<Icon name="spinner-gap" class="animate-spin" />
+																Promoting…
+															{:else}
+																<Icon name="play" />
+																Promote to scan
+															{/if}
+														</button>
+													{/if}
+													{#if promoteError[rule.name]}
+														<span class="flex items-center gap-1 text-[11px] text-danger">
+															<Icon name="warning-circle" />
+															{promoteError[rule.name]}
+														</span>
+													{/if}
+												</div>
+											</li>
+										{/each}
+									</ul>
+								</section>
+							{/if}
 
 							<!-- Events timeline -->
 							<section class="rounded-lg border border-base-700 bg-base-850 p-4">
