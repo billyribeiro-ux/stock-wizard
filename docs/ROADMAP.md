@@ -194,6 +194,8 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 ## §9 Signal Generator Catalog
 - [x] Universal `SignalPacket` schema + builder + invalidation
 - [x] No-Trade / Danger-Zone as a first-class signal
+- [x] **Alert engine**: rules (scanner/side/score/symbol/classification) → dispatch
+      (log / webhook / email-stub), events recorded; evaluated on every triggered signal
 - [ ] Scalp L/S · Day-Trade Continuation · Top/Bottom Reversal · Pullback Continuation
 - [ ] Short-Trap Long · Long-Trap Short · Gamma Squeeze · Hedge-Wall Rejection
 - [ ] SPX 0DTE Directional Scalp · SPX 0DTE Reversal/Top/Bottom · BWB Candidate

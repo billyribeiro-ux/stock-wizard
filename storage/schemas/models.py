@@ -209,6 +209,35 @@ class Backtest(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class AlertRuleRow(Base):
+    __tablename__ = "alert_rules"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    name: Mapped[str] = mapped_column(String(96))
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    channel: Mapped[str] = mapped_column(String(16), default="log")
+    config: Mapped[dict] = mapped_column(JSONB)  # full AlertRule
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class AlertEventRow(Base):
+    __tablename__ = "alert_events"
+
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    rule_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), index=True)
+    signal_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), index=True)
+    symbol: Mapped[str] = mapped_column(String(32), index=True)
+    side: Mapped[str] = mapped_column(String(8))
+    scanner_id: Mapped[str] = mapped_column(String(64))
+    classification: Mapped[str] = mapped_column(String(48))
+    score: Mapped[float] = mapped_column(Float, default=0.0)
+    channel: Mapped[str] = mapped_column(String(16))
+    delivered: Mapped[bool] = mapped_column(Boolean, default=False)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    message: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
 HYPERTABLES = {
     "ohlcv": "ts",
     "internals": "ts",

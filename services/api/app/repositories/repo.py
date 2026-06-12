@@ -6,6 +6,8 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from schemas.models import (
+    AlertEventRow,
+    AlertRuleRow,
     Backtest,
     EvidenceRow,
     ModelRegistry,
@@ -331,4 +333,68 @@ async def get_model(session: AsyncSession, model_id: UUID) -> ModelRegistry | No
 
 async def list_models(session: AsyncSession, limit: int = 50) -> list[ModelRegistry]:
     stmt = select(ModelRegistry).order_by(ModelRegistry.created_at.desc()).limit(limit)
+    return list((await session.execute(stmt)).scalars().all())
+
+
+# ---- alert rules / events ----
+async def add_alert_rule(session: AsyncSession, rule_id, name, enabled, channel, config) -> None:
+    session.add(
+        AlertRuleRow(id=rule_id, name=name, enabled=enabled, channel=channel, config=config)
+    )
+    await session.commit()
+
+
+async def list_alert_rules(session: AsyncSession, enabled_only: bool = False) -> list[AlertRuleRow]:
+    stmt = select(AlertRuleRow).order_by(AlertRuleRow.created_at.desc())
+    if enabled_only:
+        stmt = stmt.where(AlertRuleRow.enabled.is_(True))
+    return list((await session.execute(stmt)).scalars().all())
+
+
+async def get_alert_rule(session: AsyncSession, rule_id) -> AlertRuleRow | None:
+    return await session.get(AlertRuleRow, rule_id)
+
+
+async def set_alert_rule_enabled(
+    session: AsyncSession, rule_id, enabled: bool
+) -> AlertRuleRow | None:
+    row = await session.get(AlertRuleRow, rule_id)
+    if row is None:
+        return None
+    row.enabled = enabled
+    row.config = {**row.config, "enabled": enabled}
+    await session.commit()
+    return row
+
+
+async def delete_alert_rule(session: AsyncSession, rule_id) -> bool:
+    row = await session.get(AlertRuleRow, rule_id)
+    if row is None:
+        return False
+    await session.delete(row)
+    await session.commit()
+    return True
+
+
+async def add_alert_event(session: AsyncSession, event) -> None:
+    session.add(
+        AlertEventRow(
+            id=event.id,
+            rule_id=event.rule_id,
+            signal_id=event.signal_id,
+            symbol=event.symbol,
+            side=event.side.value,
+            scanner_id=event.scanner_id,
+            classification=event.classification,
+            score=event.score,
+            channel=event.channel,
+            delivered=event.delivered,
+            error=event.error,
+            message=event.message,
+        )
+    )
+
+
+async def list_alert_events(session: AsyncSession, limit: int = 100) -> list[AlertEventRow]:
+    stmt = select(AlertEventRow).order_by(AlertEventRow.created_at.desc()).limit(limit)
     return list((await session.execute(stmt)).scalars().all())

@@ -133,6 +133,10 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
                 triggered += 1
                 if redis is not None:
                     await publish_signal(redis, str(run_id), signal.model_dump_json())
+                with contextlib.suppress(Exception):  # alerts are best-effort
+                    from .alert_service import evaluate_alerts
+
+                    await evaluate_alerts(session, signal)
 
         await session.commit()
         await repo.set_run_status(session, run_id, "done")

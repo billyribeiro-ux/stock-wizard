@@ -2,6 +2,8 @@
 
 from .models import (
     HYPERTABLES,
+    AlertEventRow,
+    AlertRuleRow,
     Backtest,
     Base,
     DataQualityEvent,
@@ -18,6 +20,8 @@ from .models import (
 
 __all__ = [
     "HYPERTABLES",
+    "AlertEventRow",
+    "AlertRuleRow",
     "Backtest",
     "Base",
     "DataQualityEvent",

@@ -4,6 +4,7 @@ shared across the engine, API, worker, and (via generated JSON Schema) the dashb
 
 from __future__ import annotations
 
+from .alerts import AlertChannel, AlertEvent, AlertRule
 from .backtest import (
     BacktestMetrics,
     BacktestResult,
@@ -89,4 +90,8 @@ __all__ = [
     "CongressTrade",
     "EarningsEvent",
     "NewsItem",
+    # alerts
+    "AlertRule",
+    "AlertEvent",
+    "AlertChannel",
 ]
