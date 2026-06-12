@@ -1,6 +1,8 @@
 """Machine-learning / self-learning: datasets, models, anomaly, regime."""
 
 from .anomaly import AnomalyResult, detect_last_bar
+from .calibration import ScoreCalibrator, fit_calibrator, wilson_interval
+from .calibration_builder import build_scanner_calibrator
 from .dataset import Dataset, build_dataset, compute_feature_frame
 from .discovery import DiscoveryReport, SuggestedRule, TurnEvent, discover
 from .genetic import MinedRule, MinerConfig, mine_rules
@@ -25,6 +27,10 @@ __all__ = [
     "DiscoveryReport",
     "SuggestedRule",
     "TurnEvent",
+    "ScoreCalibrator",
+    "fit_calibrator",
+    "wilson_interval",
+    "build_scanner_calibrator",
     "train_policy",
     "RLConfig",
     "RLReport",

@@ -42,6 +42,9 @@ class SignalPacket(BaseModel):
     state: SignalState = SignalState.PROPOSED
     trade_style: TradeStyle = TradeStyle.INTRADAY
     score: float = Field(ge=0.0, le=1.0)
+    calibrated_probability: float | None = Field(
+        default=None, description="Score remapped to the historical win-rate (isotonic), if fit"
+    )
     confidence_band: tuple[float, float] = (0.0, 1.0)
     regime: Regime = Regime.UNKNOWN
 

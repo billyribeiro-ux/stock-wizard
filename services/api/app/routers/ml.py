@@ -8,11 +8,13 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from engine.scanners import list_scanner_ids
+
 from ..db import SessionLocal, get_session
 from ..jobs import enqueue_training
 from ..repositories import repo
 from ..security import require_token
-from ..services.ml_service import execute_mining, execute_training
+from ..services.ml_service import execute_calibration, execute_mining, execute_training
 
 router = APIRouter(tags=["ml"], dependencies=[Depends(require_token)])
 
@@ -68,6 +70,44 @@ async def mine(
     )
     background.add_task(
         _mine_inline, model_id, req.symbol.upper(), req.timeframe, req.history, req.horizon
+    )
+    return {"model_id": str(model_id), "enqueued": False}
+
+
+class CalibrateRequest(BaseModel):
+    scanner_id: str
+    symbol: str
+    timeframe: str = "1d"
+    history: str = "5y"
+    horizon: int = Field(default=10, ge=1, le=120)
+
+
+async def _calibrate_inline(model_id, scanner_id, symbol, timeframe, history, horizon) -> None:
+    async with SessionLocal() as session:
+        await execute_calibration(
+            session, model_id, scanner_id, symbol, timeframe, history, horizon
+        )
+
+
+@router.post("/ml/calibrate", status_code=202)
+async def calibrate(
+    req: CalibrateRequest, background: BackgroundTasks, session: AsyncSession = Depends(get_session)
+) -> dict:
+    """Fit + persist a confidence calibrator so this scanner's score == real win-rate."""
+    if req.scanner_id not in list_scanner_ids():
+        raise HTTPException(404, f"unknown scanner_id: {req.scanner_id}")
+    model_id = uuid4()
+    await repo.create_model(
+        session, model_id, name=f"calibrator:{req.scanner_id}", version="iso-1", status="training"
+    )
+    background.add_task(
+        _calibrate_inline,
+        model_id,
+        req.scanner_id,
+        req.symbol.upper(),
+        req.timeframe,
+        req.history,
+        req.horizon,
     )
     return {"model_id": str(model_id), "enqueued": False}
 

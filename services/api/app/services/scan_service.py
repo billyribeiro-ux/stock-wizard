@@ -91,6 +91,7 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
         ohlcv_src = build_ohlcv_source("yfinance")
         opt_src = build_option_source("yfinance") if run.scanner_id in _NEEDS_OPTIONS else None
         factory = FeatureFactory()
+        calibrator = await repo.get_latest_calibrator(session, run.scanner_id)
 
         aux: dict = {}
         peers: list[str] = []
@@ -162,7 +163,9 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
             result = scanner.run(ctx)
             await repo.save_result(session, result)
 
-            signal = build_signal(result, snapshot, asset_class=_asset_class(symbol))
+            signal = build_signal(
+                result, snapshot, asset_class=_asset_class(symbol), calibrator=calibrator
+            )
             await repo.save_signal(session, signal)
             if result.triggered:
                 triggered += 1

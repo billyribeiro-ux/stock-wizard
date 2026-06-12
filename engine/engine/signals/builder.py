@@ -38,6 +38,7 @@ def build_signal(
     snapshot: FeatureSnapshot | None = None,
     asset_class: AssetClass = AssetClass.EQUITY,
     account_risk: float | None = None,
+    calibrator: dict | None = None,
 ) -> SignalPacket:
     is_no_trade = (not result.triggered) or result.classification in _NO_TRADE
     side = result.direction or Side.NEUTRAL
@@ -64,10 +65,22 @@ def build_signal(
 
     computed = ["gamma", "iv"] if result.scanner_id == "spx_gamma_command" else []
 
-    # Bayesian posterior from the evidence stack (prior = scanner score).
-    from ..evidence.bayesian import confidence_band
+    # Calibration: remap the raw score to the historical win-rate (isotonic), if a
+    # calibrator was fit for this scanner; otherwise leave it None.
+    calibrated_prob: float | None = None
+    band: tuple[float, float]
+    if calibrator:
+        from ..ml.calibration import ScoreCalibrator
 
-    band = confidence_band(result.evidence, prior=max(0.05, min(0.95, result.score)))
+        cal = ScoreCalibrator.from_dict(calibrator)
+        if cal.fitted:
+            calibrated_prob = round(cal.apply(result.score), 4)
+            band = tuple(round(b, 4) for b in cal.band(result.score))  # type: ignore[assignment]
+    if calibrated_prob is None:
+        # Fall back to the Bayesian posterior band from the evidence stack.
+        from ..evidence.bayesian import confidence_band
+
+        band = confidence_band(result.evidence, prior=max(0.05, min(0.95, result.score)))
 
     return SignalPacket(
         run_id=result.run_id,
@@ -80,6 +93,7 @@ def build_signal(
         state=SignalState.PROPOSED,
         trade_style=_trade_style(result.timeframe),
         score=result.score,
+        calibrated_probability=calibrated_prob,
         confidence_band=band,
         regime=snapshot.regime if snapshot else Regime.UNKNOWN,
         classification=result.classification,

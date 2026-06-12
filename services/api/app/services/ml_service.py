@@ -44,6 +44,42 @@ async def execute_mining(
     return payload
 
 
+async def execute_calibration(
+    session,
+    model_id: UUID,
+    scanner_id: str,
+    symbol: str,
+    timeframe: str,
+    history: str,
+    horizon: int,
+) -> dict:
+    """Fit a confidence calibrator for a scanner and persist it (applied to live signals)."""
+    from engine.ml import build_scanner_calibrator
+
+    days = _HISTORY_DAYS.get(history, 1827)
+    start = datetime.now(UTC) - timedelta(days=days)
+    src = build_ohlcv_source("yfinance")
+    ohlcv = src.get_ohlcv(symbol, Timeframe(timeframe), start)
+    ohlcv, _ = validate(ohlcv)
+
+    cal = build_scanner_calibrator(scanner_id, ohlcv, horizon=horizon)
+    payload = {
+        "scanner_id": scanner_id,
+        "symbol": symbol,
+        "timeframe": timeframe,
+        "horizon": horizon,
+        "calibrator": cal.to_dict(),
+        "n_samples": cal.n_samples,
+        "base_rate": cal.base_rate,
+        "brier_raw": cal.brier_raw,
+        "brier_calibrated": cal.brier_calibrated,
+        "improved": cal.fitted and cal.brier_calibrated < cal.brier_raw,
+    }
+    status = "reliable" if payload["improved"] else ("experimental" if cal.fitted else "error")
+    await repo.save_model_report(session, model_id, payload, status)
+    return payload
+
+
 async def execute_training(
     session,
     model_id: UUID,

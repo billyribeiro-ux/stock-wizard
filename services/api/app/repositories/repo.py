@@ -380,6 +380,21 @@ async def list_models(session: AsyncSession, limit: int = 50) -> list[ModelRegis
     return list((await session.execute(stmt)).scalars().all())
 
 
+async def get_latest_calibrator(session: AsyncSession, scanner_id: str) -> dict | None:
+    """Newest fitted calibrator dict for a scanner (stored in model_registry.metrics)."""
+    stmt = (
+        select(ModelRegistry)
+        .where(ModelRegistry.name == f"calibrator:{scanner_id}")
+        .order_by(ModelRegistry.created_at.desc())
+        .limit(1)
+    )
+    row = (await session.execute(stmt)).scalars().first()
+    if row is None:
+        return None
+    cal = (row.metrics or {}).get("calibrator")
+    return cal if isinstance(cal, dict) and cal.get("fitted") else None
+
+
 # ---- alert rules / events ----
 async def add_alert_rule(session: AsyncSession, rule_id, name, enabled, channel, config) -> None:
     session.add(
