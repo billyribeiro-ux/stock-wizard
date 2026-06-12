@@ -44,9 +44,10 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 
 ### Phase 3 — Scanner Engine 🚧  (see catalog below)
 - [x] Scanner base + registry + ScanContext
-- [x] 33 scanners live: structure/levels/price-action/volume + full gamma family +
-      volatility regime + seasonality + insider/congress flow
-- [ ] Remaining scanners (order-flow/L2, internals, sector/cross-asset, ML §6.5)
+- [x] 44 scanners live: structure/levels/price-action/volume + full gamma family +
+      cross-asset/VIX/sector + volatility/seasonality + insider/congress + earnings + ML
+- [ ] Remaining scanners need external feeds: order-flow/L2/tape, market internals
+      (TICK/TRIN/VOLD), VIX options; plus research scanners (genetic/Bayesian/RL)
 
 ### Phase 4 — Signals & Evidence ✅ (core)
 - [x] ScannerResult → SignalPacket builder with ATR trade plan
@@ -89,9 +90,11 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Scanner Builder grouped/filterable across all 43 scanners by category
 - [ ] Trade Replay
 
-### Phase 10 — Hardening & Desktop ⬜
-- [ ] Auth/RBAC, audit logs, observability, CI/CD, data-quality alarms
-- [ ] **Desktop app (Tauri)** wrapping the SvelteKit UI with FastAPI as a bundled sidecar
+### Phase 10 — Hardening & Desktop 🚧
+- [x] CI/CD (GitHub Actions: ruff + pytest, svelte-check + build)
+- [x] **Desktop app (Tauri)** scaffold (`apps/desktop`) wrapping the SvelteKit UI with
+      FastAPI as a bundled sidecar (needs Rust toolchain to compile)
+- [ ] Auth/RBAC, audit logs, observability, data-quality alarms
 - [ ] Reproducible experiment tracking (MLflow), orchestration (Prefect/Dagster)
 
 ---
@@ -157,7 +160,7 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] **Insider & Congress Flow** _(added: SEC EDGAR + Finnhub)_
 - [ ] Catalyst & News Event
 - [ ] Economic Calendar
-- [ ] Earnings & Guidance
+- [x] Earnings & Guidance (Finnhub: event risk + post-earnings drift)
 - [x] Seasonality & Similar-Day
 - [ ] Macro Regime
 

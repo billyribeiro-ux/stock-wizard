@@ -47,6 +47,7 @@ _HTF = {
 }
 _NEEDS_OPTIONS = {"spx_gamma_command"}
 _NEEDS_FLOW = {"insider_congress_flow"}
+_NEEDS_EARNINGS = {"earnings_guidance"}
 _NEEDS_AUX = {"vix_tail_risk", "index_divergence", "cross_asset_risk", "sector_rotation"}
 _AUX_SYMBOLS = ["^VIX", "SPY", "QQQ", "TLT"]
 _SECTOR_ETFS = ["XLK", "XLF", "XLE", "XLV", "XLY", "XLP", "XLI", "XLU", "XLB", "XLRE", "XLC"]
@@ -104,6 +105,9 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
             insider, congress = [], []
             if run.scanner_id in _NEEDS_FLOW:
                 insider, congress = await _fetch_flow(session, symbol)
+            earnings = []
+            if run.scanner_id in _NEEDS_EARNINGS:
+                earnings = await _fetch_earnings(session, symbol)
 
             snapshot = factory.build_snapshot(ohlcv, chain=chain)
             scanner = build_scanner(run.scanner_id, run.params)
@@ -116,6 +120,7 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
                 chain=chain,
                 insider=insider,
                 congress=congress,
+                earnings=earnings,
                 aux=aux,
                 run_id=run_id,
             )
@@ -154,6 +159,22 @@ async def _fetch_flow(session, symbol: str):
         except Exception:
             congress = []
     return insider, congress
+
+
+async def _fetch_earnings(session, symbol: str):
+    """Fetch earnings calendar via Finnhub (keyed), best-effort."""
+    key_row = await repo.get_enabled_key_for(session, "finnhub")
+    if key_row is None:
+        return []
+    from engine.data.finnhub_source import FinnhubSource
+
+    from ..security import get_secret_box
+
+    try:
+        api_key = get_secret_box().decrypt(key_row.ciphertext)
+        return FinnhubSource(api_key).get_earnings(symbol)
+    except Exception:
+        return []
 
 
 def _asset_class(symbol: str) -> AssetClass:
