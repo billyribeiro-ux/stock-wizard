@@ -75,5 +75,10 @@ export const ICON_SAFELIST = [
 	'icon-[ph--keyboard]',
 	'icon-[ph--toggle-left]',
 	'icon-[ph--toggle-right]',
-	'icon-[ph--clock-counter-clockwise]'
+	'icon-[ph--clock-counter-clockwise]',
+	'icon-[ph--detective]',
+	'icon-[ph--lightbulb]',
+	'icon-[ph--list-checks]',
+	'icon-[ph--file-csv]',
+	'icon-[ph--file-pdf]'
 ] as const;

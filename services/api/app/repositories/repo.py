@@ -12,6 +12,7 @@ from schemas.models import (
     EvidenceRow,
     ModelRegistry,
     Ohlcv,
+    OptionChainRow,
     ScannerResultRow,
     ScanRun,
     SignalRow,
@@ -51,6 +52,49 @@ async def save_ohlcv_bars(session: AsyncSession, ohlcv: OHLCV, cap: int = 5000) 
         pg_insert(Ohlcv)
         .values(rows)
         .on_conflict_do_nothing(index_elements=["symbol", "timeframe", "ts", "source"])
+    )
+    await session.execute(stmt)
+    await session.commit()
+    return len(rows)
+
+
+async def save_option_chain(session: AsyncSession, chain) -> int:
+    """Upsert an OptionChain snapshot into the option_chains hypertable."""
+    from datetime import datetime as _dt
+    from datetime import time as _time
+
+    rows = []
+    for c in chain.contracts:
+        g = c.greeks
+        rows.append(
+            {
+                "underlying": chain.underlying,
+                "as_of": chain.as_of,
+                "expiry": _dt.combine(c.expiry, _time(16, 0), tzinfo=UTC),
+                "strike": c.strike,
+                "right": c.right.value,
+                "source": chain.source,
+                "bid": c.bid,
+                "ask": c.ask,
+                "last": c.last,
+                "volume": c.volume,
+                "open_interest": c.open_interest,
+                "iv": c.iv,
+                "delta": g.delta if g else None,
+                "gamma": g.gamma if g else None,
+                "theta": g.theta if g else None,
+                "vega": g.vega if g else None,
+                "computed": g.computed if g else True,
+            }
+        )
+    if not rows:
+        return 0
+    stmt = (
+        pg_insert(OptionChainRow)
+        .values(rows)
+        .on_conflict_do_nothing(
+            index_elements=["underlying", "as_of", "expiry", "strike", "right", "source"]
+        )
     )
     await session.execute(stmt)
     await session.commit()

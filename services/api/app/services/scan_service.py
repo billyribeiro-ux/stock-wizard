@@ -108,6 +108,9 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
             if opt_src is not None:
                 underlying = run.params.get("underlying", symbol)
                 chain = opt_src.get_option_chain(underlying)
+                if chain is not None:
+                    with contextlib.suppress(Exception):  # best-effort chain persistence
+                        await repo.save_option_chain(session, chain)
 
             insider, congress = [], []
             if run.scanner_id in _NEEDS_FLOW:

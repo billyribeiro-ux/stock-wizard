@@ -11,6 +11,7 @@
 		{ href: '/scanners', label: 'Scanners', icon: 'scan' },
 		{ href: '/results', label: 'Results', icon: 'table' },
 		{ href: '/backtest', label: 'Backtest Lab', icon: 'flask' },
+		{ href: '/discovery', label: 'Discovery Lab', icon: 'detective' },
 		{ href: '/replay', label: 'Trade Replay', icon: 'play-circle' },
 		{ href: '/forward', label: 'Forward Test', icon: 'test-tube' },
 		{ href: '/ml', label: 'ML Lab', icon: 'brain' },

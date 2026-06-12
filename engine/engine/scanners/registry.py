@@ -12,6 +12,7 @@ from .cross_asset import (
     SectorRotationScanner,
     VixTailRiskScanner,
 )
+from .custom_rule import CustomRuleScanner
 from .insider_congress import InsiderCongressScanner
 from .levels_scanners import (
     AnchoredVwapScanner,
@@ -110,6 +111,7 @@ _SCANNER_CLASSES: list[type[Scanner]] = [
     # ML / self-learning
     AnomalyDetectionScanner,
     RegimeClassificationScanner,
+    CustomRuleScanner,
 ]
 
 _SCANNERS: dict[str, type[Scanner]] = {cls.scanner_id: cls for cls in _SCANNER_CLASSES}

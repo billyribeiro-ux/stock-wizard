@@ -28,7 +28,8 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Data validation (gaps, splits, zero-vol, out-of-hours, impossible)
 - [x] Postgres/TimescaleDB models + Alembic migration (hypertables: ohlcv, internals, option_chains)
 - [x] Persist ingested OHLCV bars to Timescale (upsert) + /health data-health
-- [ ] Persist option chains; continuous aggregates (1m→5m→1h), compression + retention
+- [x] Persist option-chain snapshots to the option_chains hypertable
+- [ ] Continuous aggregates (1m→5m→1h), compression + retention policies
 - [ ] Paid market-data adapters: Polygon, Tradier, Theta, ORATS, CBOE
 
 ### Phase 2 — Feature Factory ✅ (core)
@@ -178,7 +179,8 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Confidence Calibration (reliability curve + Brier in model report)
 - [x] Signal Conflict Resolver _(v1 ensemble; ML upgrade pending)_
 - [x] Self-Learning Label Builder (forward-return dataset builder)
-- [ ] User Rule Builder & Hypothesis Lab
+- [x] User Rule Builder & Hypothesis Lab (custom_rule scanner: user/mined rules run live,
+      backtest via the standard engine, alert via alert rules)
 
 ---
 
