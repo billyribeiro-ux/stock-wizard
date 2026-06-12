@@ -85,7 +85,9 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Phosphor icons (Iconify CSS), ECharts gamma chart, live LIVE indicator
 - [x] Backtest Lab (equity curve + metrics + trades), SPX 0DTE Gamma Lab
 - [x] ML Lab (train model, feature importance, calibration), Portfolio/Watchlist
-- [ ] Forward Test Lab, Trade Replay
+- [x] Forward Test Lab (promotion verdict, drift, Monte-Carlo, walk-forward)
+- [x] Scanner Builder grouped/filterable across all 43 scanners by category
+- [ ] Trade Replay
 
 ### Phase 10 — Hardening & Desktop ⬜
 - [ ] Auth/RBAC, audit logs, observability, CI/CD, data-quality alarms
