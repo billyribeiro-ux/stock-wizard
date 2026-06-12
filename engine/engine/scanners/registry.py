@@ -14,6 +14,17 @@ from .cross_asset import (
 )
 from .custom_rule import CustomRuleScanner
 from .insider_congress import InsiderCongressScanner
+from .internals_scanners import (
+    ArmsTrinScanner,
+    MarketBreadthScanner,
+    McClellanScanner,
+    NewHighsLowsScanner,
+    PercentAboveMAScanner,
+    PutCallRatioScanner,
+    RiskAppetiteScanner,
+    VixTermStructureScanner,
+    ZweigThrustScanner,
+)
 from .levels_scanners import (
     AnchoredVwapScanner,
     GapScanner,
@@ -96,6 +107,16 @@ _SCANNER_CLASSES: list[type[Scanner]] = [
     OptionsFlowScanner,
     DealerHedgeFlowScanner,
     BrokenWingButterflyScanner,
+    # market internals (computed institutionally from the universe basket)
+    MarketBreadthScanner,
+    ArmsTrinScanner,
+    McClellanScanner,
+    PercentAboveMAScanner,
+    NewHighsLowsScanner,
+    ZweigThrustScanner,
+    PutCallRatioScanner,
+    VixTermStructureScanner,
+    RiskAppetiteScanner,
     # volatility / cross-asset
     VolatilityRegimeScanner,
     VixTailRiskScanner,

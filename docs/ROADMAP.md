@@ -149,15 +149,24 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Broken Wing Butterfly Opportunity
 - [x] Max Pain & OI Cluster
 
-### 6.3 Internals / volatility / sector / cross-asset (8)
-- [ ] Market Internals Breadth (needs TICK/TRIN/VOLD feed)
-- [ ] TICK Extremes & Divergence (needs internals feed)
-- [ ] TRIN & VOLD Confirmation (needs internals feed)
+### 6.3 Internals / volatility / sector / cross-asset — institutional internals suite
+- [x] Market Internals Breadth (computed from the universe basket: A/D, A/D line,
+      UVOL/DVOL, VOLD — the institutional method)
+- [x] TRIN & VOLD Confirmation (Arms Index, computed; capitulation/pressure bands)
+- [x] McClellan Oscillator & Summation Index
+- [x] % Above 20/50/200MA participation breadth
+- [x] Net New Highs / New Lows (rolling 52-week proxy)
+- [x] Zweig Breadth Thrust
+- [x] Put/Call Ratio (volume + OI, computed from the live chain)
+- [x] VIX Term Structure (VIX9D/VIX/VIX3M contango vs backwardation)
+- [x] Risk-Appetite Ratio Complex (RSP/SPY, SPHB/SPLV, XLY/XLP, IWM/SPY, HYG/IEF)
 - [x] VIX/VVIX/MOVE Tail Risk
 - [x] Volatility Regime
 - [x] Sector Rotation & Leadership
 - [x] Index Leadership Divergence
 - [x] Cross-Asset Risk-On/Risk-Off
+- [ ] TICK Extremes & Divergence (the one internal that truly needs an intraday
+      exchange tick feed; adapter slot ready)
 
 ### 6.4 Catalyst / calendar / analog (5 + extensions)
 - [x] **Insider & Congress Flow** _(added: SEC EDGAR + Finnhub)_

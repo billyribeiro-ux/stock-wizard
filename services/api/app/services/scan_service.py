@@ -45,7 +45,7 @@ _HTF = {
     Timeframe.W1: Timeframe.MO1,
     Timeframe.MO1: Timeframe.MO1,
 }
-_NEEDS_OPTIONS = {"spx_gamma_command"}
+_NEEDS_OPTIONS = {"spx_gamma_command", "put_call_ratio"}
 _NEEDS_FLOW = {"insider_congress_flow"}
 _NEEDS_EARNINGS = {"earnings_guidance"}
 _NEEDS_NEWS = {"catalyst_news"}
@@ -56,8 +56,20 @@ _NEEDS_AUX = {
     "sector_rotation",
     "macro_regime",
 }
+_NEEDS_UNIVERSE = {
+    "market_breadth",
+    "arms_trin",
+    "mcclellan",
+    "pct_above_ma",
+    "nh_nl",
+    "zweig_thrust",
+}
+_NEEDS_VOL_TERM = {"vix_term_structure"}
+_NEEDS_RISK_RATIOS = {"risk_appetite"}
 _AUX_SYMBOLS = ["^VIX", "SPY", "QQQ", "TLT"]
 _SECTOR_ETFS = ["XLK", "XLF", "XLE", "XLV", "XLY", "XLP", "XLI", "XLU", "XLB", "XLRE", "XLC"]
+_RISK_RATIO_SYMBOLS = ["RSP", "SPY", "SPHB", "SPLV", "XLY", "XLP", "IWM", "HYG", "IEF"]
+_VOL_TERM_SYMBOLS = ["^VIX9D", "^VIX", "^VIX3M"]
 
 
 def _start_for(history: str) -> datetime:
@@ -81,15 +93,24 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
         factory = FeatureFactory()
 
         aux: dict = {}
+        peers: list[str] = []
         if run.scanner_id in _NEEDS_AUX:
             peers = _SECTOR_ETFS if run.scanner_id == "sector_rotation" else _AUX_SYMBOLS
-            for peer in peers:
-                try:
-                    peer_ohlcv, _ = validate(ohlcv_src.get_ohlcv(peer, timeframe, start))
-                    if len(peer_ohlcv) > 0:
-                        aux[peer] = peer_ohlcv
-                except Exception:
-                    continue
+        elif run.scanner_id in _NEEDS_UNIVERSE:
+            from engine.features.internals import DEFAULT_UNIVERSE
+
+            peers = list(run.params.get("universe") or DEFAULT_UNIVERSE)
+        elif run.scanner_id in _NEEDS_VOL_TERM:
+            peers = _VOL_TERM_SYMBOLS
+        elif run.scanner_id in _NEEDS_RISK_RATIOS:
+            peers = _RISK_RATIO_SYMBOLS
+        for peer in peers:
+            try:
+                peer_ohlcv, _ = validate(ohlcv_src.get_ohlcv(peer, timeframe, start))
+                if len(peer_ohlcv) > 0:
+                    aux[peer] = peer_ohlcv
+            except Exception:
+                continue
 
         for symbol in run.universe:
             ohlcv = ohlcv_src.get_ohlcv(symbol, timeframe, start)
