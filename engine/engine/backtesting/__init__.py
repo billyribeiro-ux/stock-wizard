@@ -3,6 +3,15 @@
 from .engine import BacktestConfig, BacktestEngine
 from .failure import FailureAnalysis, analyze_failures
 from .metrics import compute_metrics, max_drawdown
+from .options_bt import (
+    Leg,
+    backtest_structure,
+    bwb_builder,
+    payoff_at_expiry,
+    price_structure,
+    vertical_builder,
+)
+from .portfolio import backtest_portfolio
 from .walkforward import ForwardTest, MonteCarlo, forward_test, monte_carlo, walk_forward
 
 __all__ = [
@@ -17,4 +26,11 @@ __all__ = [
     "MonteCarlo",
     "analyze_failures",
     "FailureAnalysis",
+    "Leg",
+    "payoff_at_expiry",
+    "price_structure",
+    "bwb_builder",
+    "vertical_builder",
+    "backtest_structure",
+    "backtest_portfolio",
 ]

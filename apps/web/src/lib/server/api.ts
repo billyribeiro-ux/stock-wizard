@@ -16,6 +16,8 @@ import type {
 	AlertRulesResponse,
 	Backtest,
 	BacktestsResponse,
+	DiscoveriesResponse,
+	Discovery,
 	HealthResponse,
 	MlModel,
 	MlModelsResponse,
@@ -181,6 +183,52 @@ export function listBacktests(): Promise<BacktestsResponse> {
 
 export function getBacktest(id: string): Promise<Backtest> {
 	return request<Backtest>(`/backtests/${encodeURIComponent(id)}`);
+}
+
+// --- Discovery -----------------------------------------------------------------
+
+export interface CreateDiscoveryPayload {
+	symbol: string;
+	timeframe: string;
+	history: string;
+	swing_k?: number;
+	min_move_atr?: number;
+}
+
+export function createDiscovery(
+	payload: CreateDiscoveryPayload
+): Promise<{ discovery_id: string; enqueued: boolean }> {
+	return request<{ discovery_id: string; enqueued: boolean }>('/discovery', {
+		method: 'POST',
+		body: payload
+	});
+}
+
+export function listDiscoveries(): Promise<DiscoveriesResponse> {
+	return request<DiscoveriesResponse>('/discovery');
+}
+
+export function getDiscovery(id: string): Promise<Discovery> {
+	return request<Discovery>(`/discovery/${encodeURIComponent(id)}`);
+}
+
+/**
+ * Fetch a discovery export (CSV/PDF) from the backend, returning the raw
+ * `Response` so the SvelteKit proxy endpoint can stream the body and forward
+ * the content-type / content-disposition headers to the browser.
+ */
+export async function exportDiscovery(id: string, fmt: 'csv' | 'pdf'): Promise<Response> {
+	try {
+		return await rawRequest(`/exports/discovery/${encodeURIComponent(id)}`, {
+			query: { fmt },
+			headers: { accept: fmt === 'pdf' ? 'application/pdf' : 'text/csv' }
+		});
+	} catch (cause) {
+		throw error(502, {
+			message: `Unable to reach trading backend: ${(cause as Error).message}`,
+			code: 'BACKEND_UNREACHABLE'
+		});
+	}
 }
 
 // --- ML models ---------------------------------------------------------------

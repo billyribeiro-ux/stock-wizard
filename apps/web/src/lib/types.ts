@@ -295,6 +295,84 @@ export interface ForwardTest extends Omit<Backtest, 'result'> {
 	result?: ForwardReport | null;
 }
 
+// --- Discovery -----------------------------------------------------------------
+
+export type DiscoveryStatus = 'queued' | 'running' | 'done' | 'error' | string;
+
+/** Which side of a turning point the engine identified. */
+export type DiscoveryEventKind = 'bought' | 'sold';
+
+/** A single self-identified reason attached to a turning point. */
+export interface DiscoveryReason {
+	code: string;
+	label: string;
+	detail: string;
+}
+
+/** A significant turning point the engine found in the replayed history. */
+export interface DiscoveryEvent {
+	ts: string;
+	kind: DiscoveryEventKind;
+	price: number;
+	forward_move_pct: number;
+	forward_move_atr: number;
+	reasons: DiscoveryReason[];
+}
+
+/** Aggregated reason statistics across all buy (or sell) events. */
+export interface DiscoveryReasonStat {
+	code: string;
+	label: string;
+	count: number;
+	pct_of_events: number;
+	avg_forward_move_pct: number;
+}
+
+/** Full report payload of a finished discovery run. */
+export interface DiscoveryReport {
+	symbol: string;
+	timeframe: string;
+	trade_style: string;
+	period_start: string;
+	period_end: string;
+	n_bars: number;
+	n_events: number;
+	n_bought: number;
+	n_sold: number;
+	events: DiscoveryEvent[];
+	buy_reasons: DiscoveryReasonStat[];
+	sell_reasons: DiscoveryReasonStat[];
+}
+
+/** Summary row for the "past discoveries" list (GET /discovery). */
+export interface DiscoverySummary {
+	discovery_id: string;
+	symbol: string;
+	timeframe: string;
+	status: DiscoveryStatus;
+	metrics?: Record<string, number> | null;
+	params: Record<string, unknown>;
+	created_at: string;
+}
+
+/** Full discovery record (GET /discovery/{id}), polled until status is done/error. */
+export interface Discovery {
+	discovery_id: string;
+	symbol: string;
+	timeframe: string;
+	status: DiscoveryStatus;
+	params: Record<string, unknown>;
+	metrics?: Record<string, number> | null;
+	report?: DiscoveryReport | null;
+	error?: string | null;
+	created_at: string;
+	finished_at?: string | null;
+}
+
+export interface DiscoveriesResponse {
+	items: DiscoverySummary[];
+}
+
 // --- Alerts --------------------------------------------------------------------
 
 /** Delivery channel an alert rule routes matched signals through. */

@@ -186,7 +186,10 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] `BacktestResult` contract + metrics locked
 - [x] Event-Driven backtester (no-lookahead, ATR plan, commission + slippage, full metrics)
 - [x] Walk-Forward Validation · Monte-Carlo / Bootstrap stress · Forward (paper) test
-- [ ] Tick/1s/1m multi-bar · Vectorized research
+- [x] Multi-Leg Options backtester (BWB / butterflies / verticals; BS-priced entries,
+      intrinsic settlement; payoff math golden-tested)
+- [x] Portfolio / Long-Term backtester (multi-symbol sleeves, combined curve + drawdown)
+- [ ] Tick/1s multi-bar (needs tick feed) · True historical-chain options replay (needs vendor)
 - [ ] SPX 0DTE Options · Multi-Leg Options (BWB) · Gamma Regime
 - [ ] Market Internals Confirmation · Volume Profile / Auction · Catalyst Event
 - [ ] Walk-Forward Validation · Monte Carlo / Bootstrap · Slippage/Commission/Spread
