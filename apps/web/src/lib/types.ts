@@ -150,3 +150,87 @@ export interface ReportSpec {
 	title?: string;
 	[key: string]: unknown;
 }
+
+// --- Backtests ---------------------------------------------------------------
+
+/** A single closed trade produced by a backtest run. */
+export interface TradeRecord {
+	symbol: string;
+	side: Side;
+	entry_ts: string;
+	entry_price: number;
+	exit_ts: string;
+	exit_price: number;
+	pnl: number;
+	return_pct: number;
+	mfe: number;
+	mae: number;
+	hold_seconds: number;
+	exit_reason: string;
+}
+
+/** A point on the equity curve, with running drawdown. */
+export interface EquityPoint {
+	ts: string;
+	equity: number;
+	drawdown: number;
+}
+
+/** Aggregate performance metrics for a backtest. */
+export interface BacktestMetrics {
+	total_trades: number;
+	win_rate: number;
+	profit_factor: number;
+	expectancy: number;
+	total_pnl: number;
+	cagr: number;
+	sharpe: number;
+	sortino: number;
+	max_drawdown: number;
+	recovery_factor: number;
+	avg_win: number;
+	avg_loss: number;
+	avg_rr: number;
+	exposure: number;
+}
+
+/** Full result payload of a finished backtest. */
+export interface BacktestResult {
+	trades: TradeRecord[];
+	equity_curve: EquityPoint[];
+	metrics: BacktestMetrics;
+	period_start: string;
+	period_end: string;
+}
+
+export type BacktestStatus = 'queued' | 'running' | 'done' | 'error' | string;
+
+/** Summary row for the "past backtests" list (GET /backtests). */
+export interface BacktestSummary {
+	backtest_id: string;
+	scanner_id: string;
+	timeframe: string;
+	universe: string[];
+	status: BacktestStatus;
+	metrics?: BacktestMetrics | null;
+	created_at: string;
+}
+
+/** Full backtest record (GET /backtests/{id}). */
+export interface Backtest {
+	backtest_id: string;
+	scanner_id: string;
+	status: BacktestStatus;
+	timeframe: string;
+	universe: string[];
+	params: Record<string, unknown>;
+	metrics?: BacktestMetrics | null;
+	result?: BacktestResult | null;
+	error?: string | null;
+	created_at: string;
+	finished_at?: string | null;
+}
+
+export interface BacktestsResponse {
+	items: BacktestSummary[];
+}

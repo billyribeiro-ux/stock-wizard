@@ -12,6 +12,8 @@
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 import type {
+	Backtest,
+	BacktestsResponse,
 	HealthResponse,
 	ReportSpec,
 	ScanRun,
@@ -148,6 +150,33 @@ export function getResult(id: string): Promise<ScannerResult> {
 
 export function getSignals(runId?: string): Promise<SignalsResponse> {
 	return request<SignalsResponse>('/signals', { query: { run_id: runId } });
+}
+
+// --- Backtests ---------------------------------------------------------------
+
+export interface CreateBacktestPayload {
+	scanner_id: string;
+	symbol: string;
+	timeframe: string;
+	history: string;
+	params: Record<string, unknown>;
+}
+
+export function createBacktest(
+	payload: CreateBacktestPayload
+): Promise<{ backtest_id: string; enqueued: boolean }> {
+	return request<{ backtest_id: string; enqueued: boolean }>('/backtests', {
+		method: 'POST',
+		body: payload
+	});
+}
+
+export function listBacktests(): Promise<BacktestsResponse> {
+	return request<BacktestsResponse>('/backtests');
+}
+
+export function getBacktest(id: string): Promise<Backtest> {
+	return request<Backtest>(`/backtests/${encodeURIComponent(id)}`);
 }
 
 // --- Vendor API keys ---------------------------------------------------------

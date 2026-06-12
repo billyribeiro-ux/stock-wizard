@@ -10,6 +10,8 @@
 		{ href: '/', label: 'Command Center', icon: 'gauge' },
 		{ href: '/scanners', label: 'Scanners', icon: 'scan' },
 		{ href: '/results', label: 'Results', icon: 'table' },
+		{ href: '/backtest', label: 'Backtest Lab', icon: 'flask' },
+		{ href: '/gamma', label: 'SPX Gamma Lab', icon: 'chart-bar' },
 		{ href: '/settings', label: 'Settings', icon: 'gear-six' }
 	];
 

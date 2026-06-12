@@ -49,6 +49,7 @@ ignore = [
     "RUF003",  # ambiguous unicode in comments (same reason)
     "UP042",   # custom 3.11-compatible StrEnum base
     "RUF022",  # __all__ grouped by domain rather than sorted
+    "RUF001",  # ambiguous unicode in strings (×, —, σ in evidence text)
 ]
 
 [tool.pytest.ini_options]

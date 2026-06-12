@@ -5,19 +5,88 @@ from __future__ import annotations
 from ..schemas import ScannerSpec
 from .base import Scanner
 from .insider_congress import InsiderCongressScanner
+from .levels_scanners import (
+    AnchoredVwapScanner,
+    GapScanner,
+    KeyLevelScanner,
+    OpeningRangeScanner,
+)
 from .mtf_structure import MtfStructureScanner
+from .options_gamma import (
+    CharmVannaScanner,
+    ExpectedMoveScanner,
+    GammaExposureScanner,
+    GammaSqueezeScanner,
+    GammaWallScanner,
+    MaxPainScanner,
+    OptionsFlowScanner,
+    PinMagnetScanner,
+    SkewScanner,
+)
+from .price_action import (
+    BiggerMoveScanner,
+    BreakoutQualityScanner,
+    FailedMoveScanner,
+    LiquiditySweepScanner,
+    LongTrapScanner,
+    MomentumIgnitionScanner,
+    ShortTrapScanner,
+    SqueezeCompressionScanner,
+    TrendExhaustionScanner,
+)
+from .regime import SeasonalityScanner, VolatilityRegimeScanner
 from .spx_gamma_command import SpxGammaCommandScanner
 from .volume_profile_poc import VolumeProfilePocScanner
+from .volume_scanners import (
+    AccumulationDistributionScanner,
+    LowVolumePullbackScanner,
+    RvolExpansionScanner,
+    VolumeDivergenceScanner,
+    VolumeDryUpReversalScanner,
+)
 
-_SCANNERS: dict[str, type[Scanner]] = {
-    cls.scanner_id: cls
-    for cls in (
-        MtfStructureScanner,
-        VolumeProfilePocScanner,
-        SpxGammaCommandScanner,
-        InsiderCongressScanner,
-    )
-}
+_SCANNER_CLASSES: list[type[Scanner]] = [
+    # structure / price action
+    MtfStructureScanner,
+    KeyLevelScanner,
+    AnchoredVwapScanner,
+    OpeningRangeScanner,
+    GapScanner,
+    LiquiditySweepScanner,
+    ShortTrapScanner,
+    LongTrapScanner,
+    BreakoutQualityScanner,
+    TrendExhaustionScanner,
+    MomentumIgnitionScanner,
+    FailedMoveScanner,
+    BiggerMoveScanner,
+    # volume / auction
+    VolumeProfilePocScanner,
+    SqueezeCompressionScanner,
+    AccumulationDistributionScanner,
+    VolumeDivergenceScanner,
+    LowVolumePullbackScanner,
+    VolumeDryUpReversalScanner,
+    RvolExpansionScanner,
+    # options / gamma
+    SpxGammaCommandScanner,
+    GammaExposureScanner,
+    GammaWallScanner,
+    GammaSqueezeScanner,
+    ExpectedMoveScanner,
+    PinMagnetScanner,
+    MaxPainScanner,
+    SkewScanner,
+    CharmVannaScanner,
+    OptionsFlowScanner,
+    # volatility / catalyst
+    VolatilityRegimeScanner,
+    SeasonalityScanner,
+    # catalyst / flow
+    InsiderCongressScanner,
+]
+
+_SCANNERS: dict[str, type[Scanner]] = {cls.scanner_id: cls for cls in _SCANNER_CLASSES}
 
 
 def list_scanner_ids() -> list[str]:

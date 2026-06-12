@@ -44,8 +44,9 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 
 ### Phase 3 — Scanner Engine 🚧  (see catalog below)
 - [x] Scanner base + registry + ScanContext
-- [x] 3 POC scanners + Insider/Congress flow scanner
-- [ ] Remaining ~60 scanners from the catalog
+- [x] 33 scanners live: structure/levels/price-action/volume + full gamma family +
+      volatility regime + seasonality + insider/congress flow
+- [ ] Remaining scanners (order-flow/L2, internals, sector/cross-asset, ML §6.5)
 
 ### Phase 4 — Signals & Evidence ✅ (core)
 - [x] ScannerResult → SignalPacket builder with ATR trade plan
@@ -54,8 +55,10 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Ensemble / conflict resolver (consensus + no-trade)
 - [ ] Calibrated confidence + regime permissions (ML phase)
 
-### Phase 5 — Backtesting Lab ⬜  (see catalog below)
-- [ ] Contract `BacktestResult` locked ✅; engine implementation pending
+### Phase 5 — Backtesting Lab 🚧  (see catalog below)
+- [x] `BacktestResult` contract locked + event-driven engine + metrics
+- [x] Backtest Lab UI + /backtests API + worker task
+- [ ] Walk-forward, Monte-Carlo, regime-segmented, options/multi-leg, portfolio
 
 ### Phase 6 — Forward Testing & Live Feed 🚧
 - [x] Redis pub/sub signal channel + FastAPI SSE stream
@@ -75,7 +78,8 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 ### Phase 9 — Dashboard ✅ (v1)
 - [x] Command Center, Scanner Builder, Results, Evidence Viewer, Settings (vendor keys)
 - [x] Phosphor icons (Iconify CSS), ECharts gamma chart, live LIVE indicator
-- [ ] Backtest Lab, Forward Test Lab, SPX 0DTE Gamma Lab, Trade Replay, ML Lab, Portfolio/Swing
+- [x] Backtest Lab (equity curve + metrics + trades), SPX 0DTE Gamma Lab
+- [ ] Forward Test Lab, Trade Replay, ML Lab, Portfolio/Swing
 
 ### Phase 10 — Hardening & Desktop ⬜
 - [ ] Auth/RBAC, audit logs, observability, CI/CD, data-quality alarms
@@ -89,54 +93,54 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 ### 6.1 Market structure / levels / price-action / volume (27)
 - [x] Multi-Timeframe Market Structure
 - [x] Volume Profile POC/VAH/VAL
-- [ ] Key Level Intelligence
-- [ ] Anchored VWAP Institutional Level
-- [ ] Opening Range & Session Timing
-- [ ] Gap & Gap-Fill
-- [ ] Liquidity Sweep / Stop-Hunt
-- [ ] Short Trap
-- [ ] Long Trap
+- [x] Key Level Intelligence
+- [x] Anchored VWAP Institutional Level
+- [x] Opening Range & Session Timing
+- [x] Gap & Gap-Fill
+- [x] Liquidity Sweep / Stop-Hunt
+- [x] Short Trap
+- [x] Long Trap
 - [ ] Pullback Reason Classifier
-- [ ] Breakout Quality
+- [x] Breakout Quality
 - [ ] Reversal Master
-- [ ] Trend Exhaustion
-- [ ] Momentum Ignition
-- [ ] Bigger-Than-Expected Move Detector
-- [ ] Squeeze & Compression
-- [ ] Failed Move
-- [ ] Subtle Accumulation/Distribution
-- [ ] Volume Divergence / Effort-vs-Result
-- [ ] Cumulative Delta / Order Flow
-- [ ] Large Print & Block Activity
-- [ ] Micro POC Per-Bar Auction
-- [ ] Bid/Ask Imbalance
-- [ ] Absorption
-- [ ] Low-Volume Pullback
-- [ ] Volume Dry-Up Reversal
-- [ ] Relative Volume Expansion
+- [x] Trend Exhaustion
+- [x] Momentum Ignition
+- [x] Bigger-Than-Expected Move Detector
+- [x] Squeeze & Compression
+- [x] Failed Move
+- [x] Subtle Accumulation/Distribution
+- [x] Volume Divergence / Effort-vs-Result
+- [ ] Cumulative Delta / Order Flow (needs L2/tick feed)
+- [ ] Large Print & Block Activity (needs tape feed)
+- [ ] Micro POC Per-Bar Auction (needs tick feed)
+- [ ] Bid/Ask Imbalance (needs L2 feed)
+- [ ] Absorption (needs tick/delta feed)
+- [x] Low-Volume Pullback
+- [x] Volume Dry-Up Reversal
+- [x] Relative Volume Expansion
 
 ### 6.2 Options / gamma / SPX (14)
 - [x] SPX 0DTE Gamma Command
-- [ ] Gamma Exposure / GX
-- [ ] Gamma Hedge Wall
-- [ ] Gamma Squeeze
+- [x] Gamma Exposure / GX
+- [x] Gamma Hedge Wall
+- [x] Gamma Squeeze
 - [ ] Dealer Hedge Flow
-- [ ] Options Flow & Unusual Activity
-- [ ] VIX Options Hedge
-- [ ] Expected Move & IV Premium
-- [ ] Pin Risk & Magnet
-- [ ] Charm & Vanna Flow
-- [ ] Skew & Term Structure
-- [ ] 0DTE Scalp-vs-Reversal Classifier
+- [x] Options Flow & Unusual Activity
+- [ ] VIX Options Hedge (needs VIX options feed)
+- [x] Expected Move & IV Premium
+- [x] Pin Risk & Magnet
+- [x] Charm & Vanna Flow
+- [x] Skew & Term Structure
+- [ ] 0DTE Scalp-vs-Reversal Classifier (covered by Gamma Command)
 - [ ] Broken Wing Butterfly Opportunity
-- [ ] Max Pain & OI Cluster
+- [x] Max Pain & OI Cluster
 
 ### 6.3 Internals / volatility / sector / cross-asset (8)
 - [ ] Market Internals Breadth
 - [ ] TICK Extremes & Divergence
 - [ ] TRIN & VOLD Confirmation
 - [ ] VIX/VVIX/MOVE Tail Risk
-- [ ] Volatility Regime
+- [x] Volatility Regime
 - [ ] Sector Rotation & Leadership
 - [ ] Index Leadership Divergence
 - [ ] Cross-Asset Risk-On/Risk-Off
@@ -146,7 +150,7 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [ ] Catalyst & News Event
 - [ ] Economic Calendar
 - [ ] Earnings & Guidance
-- [ ] Seasonality & Similar-Day
+- [x] Seasonality & Similar-Day
 - [ ] Macro Regime
 
 ### 6.5 ML / self-learning / research (12)
@@ -167,7 +171,8 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 
 ## §8 Backtester Catalog
 - [x] `BacktestResult` contract + metrics locked
-- [ ] Event-Driven Intraday · Tick/1s/1m multi-bar · Vectorized research
+- [x] Event-Driven backtester (no-lookahead, ATR plan, commission + slippage, full metrics)
+- [ ] Tick/1s/1m multi-bar · Vectorized research
 - [ ] SPX 0DTE Options · Multi-Leg Options (BWB) · Gamma Regime
 - [ ] Market Internals Confirmation · Volume Profile / Auction · Catalyst Event
 - [ ] Walk-Forward Validation · Monte Carlo / Bootstrap · Slippage/Commission/Spread

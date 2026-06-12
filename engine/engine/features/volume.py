@@ -44,6 +44,41 @@ def up_down_volume_ratio(df: pd.DataFrame, lookback: int = 20) -> float | None:
     return float(up / down)
 
 
+def obv(df: pd.DataFrame) -> pd.Series:
+    """On-Balance Volume — cumulative signed volume by close direction."""
+    direction = np.sign(df["close"].diff().fillna(0.0))
+    return (direction * df["volume"]).cumsum()
+
+
+def obv_slope(df: pd.DataFrame, window: int = 20) -> float | None:
+    """Normalized slope of OBV over `window` bars (accumulation/distribution gauge)."""
+    if len(df) < window:
+        return None
+    series = obv(df).iloc[-window:].to_numpy(dtype=float)
+    scale = np.abs(series).mean()
+    if scale <= 0:
+        return None
+    x = np.arange(window, dtype=float)
+    return float(np.polyfit(x, series, 1)[0] / scale)
+
+
+def effort_vs_result(df: pd.DataFrame) -> float | None:
+    """Volume (effort) vs price progress (result) on the last bar.
+
+    High ratio = lots of volume, little movement = absorption.
+    """
+    if len(df) < 2:
+        return None
+    rng = float(df["high"].iloc[-1] - df["low"].iloc[-1])
+    vol = float(df["volume"].iloc[-1])
+    if rng <= 0:
+        return None
+    avg_vol = float(df["volume"].iloc[-20:].mean()) if len(df) >= 20 else vol
+    if avg_vol <= 0:
+        return None
+    return (vol / avg_vol) / (rng / df["close"].iloc[-1] / 0.01 + 1e-9)
+
+
 def volume_dry_up(df: pd.DataFrame, lookback: int = 20) -> bool | None:
     """True when the latest bar's volume is in the bottom quartile of the lookback."""
     if len(df) < lookback + 1:

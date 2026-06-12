@@ -67,6 +67,18 @@ def rho(s, k, t, r, sigma, right: str = "C"):
     return -k * t * np.exp(-r * t) * norm.cdf(-d2)
 
 
+def vanna(s, k, t, r, sigma):
+    """dDelta/dVol = dVega/dSpot. Same for calls and puts: -N'(d1)·d2/σ."""
+    d1, d2, _, sigma = _d1_d2(s, k, t, r, sigma)
+    return -norm.pdf(d1) * d2 / sigma
+
+
+def charm(s, k, t, r, sigma):
+    """dDelta/dTime (delta decay), per year. With q=0 identical for calls/puts."""
+    d1, d2, t, sigma = _d1_d2(s, k, t, r, sigma)
+    return -norm.pdf(d1) * (2 * r * t - d2 * sigma * np.sqrt(t)) / (2 * t * sigma * np.sqrt(t))
+
+
 def bs_price(s, k, t, r, sigma, right: str = "C"):
     s = np.asarray(s, dtype=float)
     k = np.asarray(k, dtype=float)
