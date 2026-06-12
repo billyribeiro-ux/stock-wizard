@@ -182,8 +182,10 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Anomaly Detection (IsolationForest scanner)
 - [x] Regime Classification Engine (scanner + forward-bias)
 - [x] Genetic Rule Miner (evolves readable rules; walk-forward validated; /ml/mine)
-- [x] **Self-Learning Discovery** (replays any lookback of history, self-identifies WHY
-      each turn was bought/sold per trade style; CSV + PDF exports; /discovery API)
+- [x] **Self-Learning Discovery** (replays any lookback, self-identifies WHY each turn was
+      bought/sold per trade style; **out-of-sample validated lift + significance**;
+      promotes validated reasons to runnable rules; CSV + PDF exports; /discovery API)
+- [x] Failure Analysis (trade failure tagging feeding the research loop)
 - [x] Bayesian Evidence Scorer (log-odds posterior + confidence band, wired into signals)
 - [x] Reinforcement Learning Trade Policy Lab (tabular Q-learning, walk-forward
       evaluated vs buy-and-hold; research-only, never auto-promoted)
@@ -203,12 +205,12 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] Multi-Leg Options backtester (BWB / butterflies / verticals; BS-priced entries,
       intrinsic settlement; payoff math golden-tested)
 - [x] Portfolio / Long-Term backtester (multi-symbol sleeves, combined curve + drawdown)
+- [x] Slippage/Commission/Spread cost model (in the event-driven engine)
+- [x] Failure Analysis (loss/late/missed tagging) + Trade Replay UI
+- [x] **Lookahead / Data-Leakage Auditor** (proves features are as-of-safe; CI guard + /ml/leakage-audit)
+- [x] Data-Quality Auditor (validation: gaps/splits/zero-vol/out-of-hours/impossible)
 - [ ] Tick/1s multi-bar (needs tick feed) · True historical-chain options replay (needs vendor)
-- [ ] SPX 0DTE Options · Multi-Leg Options (BWB) · Gamma Regime
-- [ ] Market Internals Confirmation · Volume Profile / Auction · Catalyst Event
-- [ ] Walk-Forward Validation · Monte Carlo / Bootstrap · Slippage/Commission/Spread
-- [ ] Forward Testing / Paper · Portfolio / Long-Term · Signal Ensemble · Regime-Segmented
-- [ ] Trade Replay · Lookahead/Leakage Auditor · Data-Quality Auditor
+- [ ] Gamma-regime-segmented backtester (needs historical chains)
 
 ## §9 Signal Generator Catalog
 - [x] Universal `SignalPacket` schema + builder + invalidation
