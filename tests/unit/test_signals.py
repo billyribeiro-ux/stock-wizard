@@ -91,3 +91,46 @@ def test_ensemble_conflict_blocks():
 
     cons = combine([mk(Side.LONG), mk(Side.SHORT)])
     assert cons.action == "no_trade"
+
+
+def test_ensemble_edge_weights_break_ties():
+    """Equal-and-opposite scores, but the LONG scanner has a higher validated edge -> LONG."""
+    from engine.schemas import EvidencePacket, InvalidationRule, ScannerResult
+
+    def mk(sid, direction):
+        return ScannerResult(
+            scanner_id=sid,
+            symbol="SPY",
+            timeframe=Timeframe.M5,
+            ts=NOW,
+            triggered=True,
+            direction=direction,
+            score=0.8,
+            classification="c",
+            evidence=EvidencePacket(
+                why="",
+                why_now="",
+                invalidation=InvalidationRule(description="", kind="price"),
+                confidence=0.8,
+            ),
+        )
+
+    results = [mk("good", Side.LONG), mk("weak", Side.SHORT)]
+    # good scanner carries 2x validated edge -> consensus leans LONG and trades
+    cons = combine(results, edge_weights={"good": 2.0, "weak": 0.5})
+    assert cons.direction == Side.LONG
+    assert cons.long_weight > cons.short_weight
+    assert cons.weights_used["good"] == 2.0
+
+
+def test_edge_weight_from_calibrator():
+    from engine.evidence import edge_weight_from_calibrator
+    from engine.ml.calibration import ScoreCalibrator
+
+    assert edge_weight_from_calibrator(None) == 1.0
+    # a calibrator whose 0.7-score wins ~80% vs a 50% base -> weight > 1
+    strong = ScoreCalibrator(x=[0.0, 1.0], y=[0.8, 0.8], base_rate=0.5, fitted=True).to_dict()
+    assert edge_weight_from_calibrator(strong) > 1.0
+    # a calibrator with win-rate below base -> weight < 1
+    weak = ScoreCalibrator(x=[0.0, 1.0], y=[0.4, 0.4], base_rate=0.5, fitted=True).to_dict()
+    assert edge_weight_from_calibrator(weak) < 1.0

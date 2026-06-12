@@ -319,13 +319,55 @@ export interface DiscoveryEvent {
 	reasons: DiscoveryReason[];
 }
 
-/** Aggregated reason statistics across all buy (or sell) events. */
+/**
+ * Aggregated, validated reason statistics across all buy (or sell) events.
+ *
+ * The backend now cross-validates each reason on a held-out out-of-sample (OOS)
+ * split: it reports the in-sample lift over the baseline forward move, the
+ * t-statistic of the effect, the OOS lift, and a `holds_up` flag set when the
+ * edge survives out-of-sample.
+ */
 export interface DiscoveryReasonStat {
 	code: string;
 	label: string;
 	count: number;
 	pct_of_events: number;
 	avg_forward_move_pct: number;
+	/** Mean forward move across all events on this side (the comparison baseline). */
+	baseline_move_pct: number;
+	/** In-sample edge: avg_forward_move_pct − baseline_move_pct (or a ratio). */
+	lift: number;
+	/** Significance of the in-sample effect. */
+	t_stat: number;
+	/** Number of events backing the out-of-sample estimate. */
+	oos_count: number;
+	/** Out-of-sample mean forward move for this reason. */
+	oos_avg_move_pct: number;
+	/** Out-of-sample edge over the baseline. */
+	oos_lift: number;
+	/** True when the edge survives out-of-sample validation. */
+	holds_up: boolean;
+}
+
+/** A single condition within a promotable rule (e.g. `rsi14 < 35`). */
+export interface RuleCondition {
+	feature: string;
+	op: string;
+	threshold: number;
+}
+
+/**
+ * A concrete, promotable trading rule the engine distilled from a validated
+ * reason. It can be promoted into a live `custom_rule` scan.
+ */
+export interface SuggestedRule {
+	name: string;
+	direction: Exclude<Direction, 'NEUTRAL'>;
+	conditions: RuleCondition[];
+	/** Reason code this rule was derived from. */
+	source_reason: string;
+	in_sample_lift: number;
+	oos_lift: number;
 }
 
 /** Full report payload of a finished discovery run. */
@@ -342,6 +384,14 @@ export interface DiscoveryReport {
 	events: DiscoveryEvent[];
 	buy_reasons: DiscoveryReasonStat[];
 	sell_reasons: DiscoveryReasonStat[];
+	/** Mean forward move across all buy events (baseline for buy-reason lift). */
+	baseline_buy_move: number;
+	/** Mean forward move across all sell events (baseline for sell-reason lift). */
+	baseline_sell_move: number;
+	/** Fraction of events held out for out-of-sample validation (0..1). */
+	validated_split: number;
+	/** Promotable rules distilled from the validated reasons. */
+	suggested_rules: SuggestedRule[];
 }
 
 /** Summary row for the "past discoveries" list (GET /discovery). */
@@ -469,4 +519,92 @@ export interface MlModel {
 
 export interface MlModelsResponse {
 	items: MlModelSummary[];
+}
+
+// --- ML Lab: self-learning ---------------------------------------------------
+
+/** A single feature's mutual-information ranking against the forward label. */
+export interface FeatureRanking {
+	feature: string;
+	mutual_information: number;
+	/** Information gain expressed as a percentage of label entropy. */
+	information_gain_pct: number;
+}
+
+/** Mutual-information feature report (GET /ml/feature-info). */
+export interface FeatureInfoReport {
+	label_entropy: number;
+	base_rate: number;
+	n_samples: number;
+	rankings: FeatureRanking[];
+	/** Highly-correlated feature pairs: [featureA, featureB, redundancyScore]. */
+	redundant_pairs: [string, string, number][];
+}
+
+/** A single detected lookahead leak. */
+export interface LeakProbe {
+	feature: string;
+	detail?: string;
+	abs_diff?: number;
+	[key: string]: unknown;
+}
+
+/** Leakage / lookahead audit report (GET /ml/leakage-audit). */
+export interface LeakageAuditReport {
+	clean: boolean;
+	summary: string;
+	n_probes: number;
+	features_checked: number;
+	leaks: LeakProbe[];
+	max_abs_diff: number;
+}
+
+/** Calibrator quality stats (probability calibration). */
+export interface CalibratorReport {
+	n_samples: number;
+	base_rate: number;
+	brier_raw: number;
+	brier_calibrated: number;
+	improved: boolean;
+}
+
+/** Meta-labeling model report (secondary filter over a primary model). */
+export interface MetaReport {
+	primary_win_rate: number;
+	meta_cv_auc: number;
+	meta_precision_at_threshold: number;
+	take_fraction: number;
+	lift_vs_primary: number;
+	fitted: boolean;
+}
+
+/** A single rule discovered by the rule miner. */
+export interface MinedRule {
+	description: string;
+	train_hits: number;
+	train_mean_return: number;
+	valid_mean_return: number;
+	holds_up: boolean;
+}
+
+/**
+ * Generic self-learning job record. These jobs follow the same create→poll
+ * lifecycle as `MlModel`: created with a `model_id`, polled via
+ * `GET /ml/models/{id}` until `status` leaves `training`, then the relevant
+ * report block is populated.
+ */
+export interface MlAdvancedReport {
+	calibrator?: CalibratorReport | null;
+	meta?: MetaReport | null;
+	mined_rules?: MinedRule[] | null;
+}
+
+/** Full self-learning job record (calibrate / meta / mine). */
+export interface MlAdvancedJob {
+	model_id: string;
+	name: string;
+	version: string;
+	status: ModelStatus;
+	report?: MlAdvancedReport | null;
+	created_at: string;
 }

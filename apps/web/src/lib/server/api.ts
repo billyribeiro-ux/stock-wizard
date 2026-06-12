@@ -18,10 +18,14 @@ import type {
 	BacktestsResponse,
 	DiscoveriesResponse,
 	Discovery,
+	FeatureInfoReport,
 	HealthResponse,
+	LeakageAuditReport,
+	MlAdvancedJob,
 	MlModel,
 	MlModelsResponse,
 	ReportSpec,
+	RuleCondition,
 	ScanRun,
 	Scanner,
 	ScannerResult,
@@ -231,6 +235,32 @@ export async function exportDiscovery(id: string, fmt: 'csv' | 'pdf'): Promise<R
 	}
 }
 
+/**
+ * Promote a validated discovery rule into a live scan. POSTs to `/scans` with
+ * the built-in `custom_rule` scanner, passing the rule's direction, conditions
+ * and name as params. Returns the new `run_id`.
+ */
+export interface PromoteRulePayload {
+	symbol: string;
+	timeframe: string;
+	direction: 'LONG' | 'SHORT';
+	conditions: RuleCondition[];
+	name: string;
+}
+
+export function promoteRule(payload: PromoteRulePayload): Promise<{ run_id: string }> {
+	const { symbol, timeframe, direction, conditions, name } = payload;
+	return request<{ run_id: string }>('/scans', {
+		method: 'POST',
+		body: {
+			scanner_id: 'custom_rule',
+			symbols: [symbol],
+			timeframe,
+			params: { direction, conditions, name }
+		}
+	});
+}
+
 // --- ML models ---------------------------------------------------------------
 
 export interface TrainModelPayload {
@@ -256,6 +286,70 @@ export function listModels(): Promise<MlModelsResponse> {
 
 export function getModel(id: string): Promise<MlModel> {
 	return request<MlModel>(`/ml/models/${encodeURIComponent(id)}`);
+}
+
+// --- ML Lab: self-learning ---------------------------------------------------
+
+export interface FeatureInfoQuery {
+	symbol: string;
+	timeframe: string;
+	history: string;
+	horizon: number;
+}
+
+/** Mutual-information feature ranking + redundancy report. */
+export function getFeatureInfo(params: FeatureInfoQuery): Promise<FeatureInfoReport> {
+	return request<FeatureInfoReport>('/ml/feature-info', { query: { ...params } });
+}
+
+export interface LeakageAuditQuery {
+	symbol: string;
+	timeframe: string;
+	history: string;
+}
+
+/** Lookahead / leakage audit report. */
+export function getLeakageAudit(params: LeakageAuditQuery): Promise<LeakageAuditReport> {
+	return request<LeakageAuditReport>('/ml/leakage-audit', { query: { ...params } });
+}
+
+export interface AdvancedJobPayload {
+	scanner_id?: string;
+	symbol: string;
+	timeframe: string;
+	history: string;
+	horizon: number;
+}
+
+/** Kick off probability calibration; poll `getAdvancedJob(model_id)`. */
+export function calibrateModel(payload: AdvancedJobPayload): Promise<{ model_id: string }> {
+	return request<{ model_id: string }>('/ml/calibrate', { method: 'POST', body: payload });
+}
+
+/** Kick off meta-labeling training; poll `getAdvancedJob(model_id)`. */
+export function trainMeta(payload: AdvancedJobPayload): Promise<{ model_id: string }> {
+	return request<{ model_id: string }>('/ml/meta', { method: 'POST', body: payload });
+}
+
+export interface MineRulesPayload {
+	symbol: string;
+	timeframe: string;
+	history: string;
+	horizon: number;
+}
+
+/** Kick off rule mining; poll `getAdvancedJob(model_id)`. */
+export function mineRules(payload: MineRulesPayload): Promise<{ model_id: string }> {
+	return request<{ model_id: string }>('/ml/mine', { method: 'POST', body: payload });
+}
+
+/**
+ * Poll a self-learning job (calibrate / meta / mine). Reuses the shared
+ * `/ml/models/{id}` lifecycle endpoint; the populated `report` block depends on
+ * which job kind was started.
+ */
+export function getAdvancedJob(id: string): Promise<MlAdvancedJob> {
+	return request<MlAdvancedJob>(`/ml/models/${encodeURIComponent(id)}`);
 }
 
 // --- Vendor API keys ---------------------------------------------------------

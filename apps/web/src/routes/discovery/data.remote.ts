@@ -34,3 +34,29 @@ export const getDiscovery = query(
 export const listDiscoveries = query(async (): Promise<DiscoveriesResponse> => {
 	return api.listDiscoveries();
 });
+
+const PromoteRuleSchema = v.object({
+	symbol: v.pipe(v.string(), v.nonEmpty('Provide a symbol')),
+	timeframe: v.pipe(v.string(), v.nonEmpty()),
+	direction: v.picklist(['LONG', 'SHORT']),
+	name: v.pipe(v.string(), v.nonEmpty('Provide a rule name')),
+	conditions: v.array(
+		v.object({
+			feature: v.pipe(v.string(), v.nonEmpty()),
+			op: v.pipe(v.string(), v.nonEmpty()),
+			threshold: v.number()
+		})
+	)
+});
+
+/**
+ * Promote a validated discovery rule into a live `custom_rule` scan. Returns the
+ * new `run_id`; the page links to `/results?run=<run_id>` on success.
+ */
+export const promoteRule = command(
+	PromoteRuleSchema,
+	async (input): Promise<{ run_id: string }> => {
+		const { run_id } = await api.promoteRule(input);
+		return { run_id };
+	}
+);

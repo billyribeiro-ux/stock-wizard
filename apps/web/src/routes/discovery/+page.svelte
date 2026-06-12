@@ -1,7 +1,13 @@
 <script lang="ts">
 	import Icon from '$lib/components/Icon.svelte';
-	import { runDiscovery, getDiscovery, listDiscoveries } from './data.remote';
-	import type { Discovery, DiscoveryEvent, DiscoveryReasonStat, DiscoveryReport } from '$lib/types';
+	import { runDiscovery, getDiscovery, listDiscoveries, promoteRule } from './data.remote';
+	import type {
+		Discovery,
+		DiscoveryEvent,
+		DiscoveryReasonStat,
+		DiscoveryReport,
+		SuggestedRule
+	} from '$lib/types';
 
 	const TIMEFRAMES = ['1m', '5m', '15m', '30m', '1h', '1d', '1wk'] as const;
 	const LOOKBACKS = ['5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', '20y', '30y'] as const;
@@ -114,6 +120,50 @@
 
 	function reasonLabels(event: DiscoveryEvent): string {
 		return event.reasons.map((r) => r.label).join(', ');
+	}
+
+	/** Format a lift value as a signed multiplier / delta with two decimals. */
+	function fmtLift(value: number): string {
+		if (value === undefined || value === null || Number.isNaN(value)) return '—';
+		return `${value >= 0 ? '+' : ''}${value.toFixed(2)}`;
+	}
+
+	function fmtNum(value: number): string {
+		if (value === undefined || value === null || Number.isNaN(value)) return '—';
+		return value.toFixed(2);
+	}
+
+	/** Render a rule condition as a compact predicate, e.g. "rsi14 < 35". */
+	function conditionText(rule: SuggestedRule): string {
+		return rule.conditions.map((c) => `${c.feature} ${c.op} ${c.threshold}`).join(' and ');
+	}
+
+	// --- Promote-to-scan state -----------------------------------------------
+	// Keyed by rule name so each row tracks its own pending / result / error.
+	let promoting = $state<Record<string, boolean>>({});
+	let promotedRun = $state<Record<string, string>>({});
+	let promoteError = $state<Record<string, string>>({});
+
+	async function promote(report: DiscoveryReport, rule: SuggestedRule): Promise<void> {
+		promoting = { ...promoting, [rule.name]: true };
+		promoteError = { ...promoteError, [rule.name]: '' };
+		try {
+			const { run_id } = await promoteRule({
+				symbol: report.symbol,
+				timeframe: report.timeframe,
+				direction: rule.direction,
+				name: rule.name,
+				conditions: rule.conditions
+			});
+			promotedRun = { ...promotedRun, [rule.name]: run_id };
+		} catch (error) {
+			promoteError = {
+				...promoteError,
+				[rule.name]: error instanceof Error ? error.message : 'Failed to promote rule.'
+			};
+		} finally {
+			promoting = { ...promoting, [rule.name]: false };
+		}
 	}
 </script>
 
@@ -323,57 +373,104 @@
 					<p>Run a discovery or pick a past run to inspect what the engine learned.</p>
 				</div>
 			{:else}
-				{#snippet reasonTable(title: string, tone: 'long' | 'short', rows: DiscoveryReasonStat[])}
+				{#snippet reasonTable(
+					title: string,
+					tone: 'long' | 'short',
+					rows: DiscoveryReasonStat[],
+					baseline: number
+				)}
 					<section class="min-w-0 rounded-lg border border-base-700 bg-base-850 p-4">
-						<h3
-							class="mb-3 flex items-center gap-2 text-sm font-semibold {tone === 'long'
-								? 'text-long'
-								: 'text-short'}"
-						>
-							<Icon name={tone === 'long' ? 'trend-up' : 'trend-down'} />
-							{title}
-						</h3>
+						<div class="mb-3 flex items-center justify-between gap-2">
+							<h3
+								class="flex items-center gap-2 text-sm font-semibold {tone === 'long'
+									? 'text-long'
+									: 'text-short'}"
+							>
+								<Icon name={tone === 'long' ? 'trend-up' : 'trend-down'} />
+								{title}
+							</h3>
+							<span class="font-mono text-[11px] text-base-500">
+								baseline {fmtPct(baseline)}
+							</span>
+						</div>
 						{#if rows.length === 0}
 							<p class="text-xs text-base-500">No reasons identified.</p>
 						{:else}
-							<table class="w-full text-xs">
-								<thead>
-									<tr class="text-left text-base-500">
-										<th class="py-1.5 pr-3 font-medium">Reason</th>
-										<th class="py-1.5 pr-3 text-right font-medium">Count</th>
-										<th class="py-1.5 pr-3 font-medium">% of events</th>
-										<th class="py-1.5 text-right font-medium">Avg fwd move</th>
-									</tr>
-								</thead>
-								<tbody>
-									{#each rows as row (row.code)}
-										<tr class="border-t border-base-800">
-											<td class="py-1.5 pr-3 text-base-200">{row.label}</td>
-											<td class="py-1.5 pr-3 text-right font-mono text-base-300">{row.count}</td>
-											<td class="py-1.5 pr-3">
-												<div class="flex items-center gap-2">
-													<div class="h-1.5 w-16 overflow-hidden rounded-full bg-base-800">
-														<div
-															class="h-full rounded-full {tone === 'long' ? 'bg-long' : 'bg-short'}"
-															style="width: {Math.min(100, Math.max(0, row.pct_of_events * 100))}%"
-														></div>
-													</div>
-													<span class="font-mono text-base-300">
-														{(row.pct_of_events * 100).toFixed(0)}%
-													</span>
-												</div>
-											</td>
-											<td
-												class="py-1.5 text-right font-mono"
-												class:text-long={row.avg_forward_move_pct > 0}
-												class:text-short={row.avg_forward_move_pct < 0}
-											>
-												{fmtPct(row.avg_forward_move_pct)}
-											</td>
+							<div class="overflow-x-auto">
+								<table class="w-full text-xs">
+									<thead>
+										<tr class="text-left text-base-500">
+											<th class="py-1.5 pr-3 font-medium">Reason</th>
+											<th class="py-1.5 pr-3 text-right font-medium">Count</th>
+											<th class="py-1.5 pr-3 font-medium">% of events</th>
+											<th class="py-1.5 pr-3 text-right font-medium">Avg fwd move</th>
+											<th class="py-1.5 pr-3 text-right font-medium">Lift</th>
+											<th class="py-1.5 pr-3 text-right font-medium">t-stat</th>
+											<th class="py-1.5 pr-3 text-right font-medium">OOS lift</th>
+											<th class="py-1.5 text-right font-medium">Validated</th>
 										</tr>
-									{/each}
-								</tbody>
-							</table>
+									</thead>
+									<tbody>
+										{#each rows as row (row.code)}
+											<tr class="border-t border-base-800">
+												<td class="py-1.5 pr-3 text-base-200">{row.label}</td>
+												<td class="py-1.5 pr-3 text-right font-mono text-base-300">{row.count}</td>
+												<td class="py-1.5 pr-3">
+													<div class="flex items-center gap-2">
+														<div class="h-1.5 w-16 overflow-hidden rounded-full bg-base-800">
+															<div
+																class="h-full rounded-full {tone === 'long'
+																	? 'bg-long'
+																	: 'bg-short'}"
+																style="width: {Math.min(100, Math.max(0, row.pct_of_events * 100))}%"
+															></div>
+														</div>
+														<span class="font-mono text-base-300">
+															{(row.pct_of_events * 100).toFixed(0)}%
+														</span>
+													</div>
+												</td>
+												<td
+													class="py-1.5 pr-3 text-right font-mono"
+													class:text-long={row.avg_forward_move_pct > 0}
+													class:text-short={row.avg_forward_move_pct < 0}
+												>
+													{fmtPct(row.avg_forward_move_pct)}
+												</td>
+												<td
+													class="py-1.5 pr-3 text-right font-mono"
+													class:text-long={row.lift > 0}
+													class:text-short={row.lift < 0}
+												>
+													{fmtLift(row.lift)}
+												</td>
+												<td class="py-1.5 pr-3 text-right font-mono text-base-300">
+													{fmtNum(row.t_stat)}
+												</td>
+												<td
+													class="py-1.5 pr-3 text-right font-mono"
+													class:text-long={row.oos_lift > 0}
+													class:text-short={row.oos_lift < 0}
+												>
+													{fmtLift(row.oos_lift)}
+												</td>
+												<td class="py-1.5 text-right">
+													{#if row.holds_up}
+														<span
+															class="inline-flex items-center gap-1 rounded-full bg-long-soft px-1.5 py-0.5 text-[10px] font-semibold text-long"
+														>
+															<Icon name="check" />
+															validated
+														</span>
+													{:else}
+														<span class="text-base-600">—</span>
+													{/if}
+												</td>
+											</tr>
+										{/each}
+									</tbody>
+								</table>
+							</div>
 						{/if}
 					</section>
 				{/snippet}
