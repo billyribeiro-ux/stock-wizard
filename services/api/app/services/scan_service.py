@@ -89,7 +89,7 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
     try:
         timeframe = Timeframe(run.timeframe)
         start = _start_for(str(run.params.get("history", "6mo")))
-        ohlcv_src = build_ohlcv_source("yfinance")
+        ohlcv_src = await _resolve_ohlcv_source(session, run.params.get("data_vendor"))
         opt_src = build_option_source("yfinance") if run.scanner_id in _NEEDS_OPTIONS else None
         factory = FeatureFactory()
         calibrator = await repo.get_latest_calibrator(session, run.scanner_id)
@@ -183,6 +183,28 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
         await repo.set_run_status(session, run_id, "error", error=str(exc))
         raise
     return triggered
+
+
+async def _resolve_ohlcv_source(session, requested: str | None = None):
+    """Prefer FMP for equities when an enabled key exists; fall back to yfinance.
+
+    ``requested`` (scan param ``data_vendor``) can force a vendor; otherwise FMP is used
+    when keyed. On any FMP construction failure we degrade to yfinance so scans never break.
+    """
+    vendor = requested or "fmp"
+    if vendor == "fmp":
+        key_row = await repo.get_enabled_key_for(session, "fmp")
+        if key_row is not None:
+            from ..security import get_secret_box
+
+            try:
+                api_key = get_secret_box().decrypt(key_row.ciphertext)
+                return build_ohlcv_source("fmp", api_key)
+            except Exception:
+                pass
+        if requested == "fmp":  # explicitly forced but unavailable -> still fall back safely
+            pass
+    return build_ohlcv_source("yfinance")
 
 
 async def _fetch_flow(session, symbol: str):

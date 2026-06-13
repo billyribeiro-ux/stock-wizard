@@ -32,7 +32,8 @@ import type {
 	ScannerResultsResponse,
 	SignalPacket,
 	SignalsResponse,
-	Vendor
+	Vendor,
+	VendorCatalogEntry
 } from '$lib/types';
 
 function baseUrl(): string {
@@ -354,6 +355,11 @@ export function getAdvancedJob(id: string): Promise<MlAdvancedJob> {
 
 // --- Vendor API keys ---------------------------------------------------------
 
+/** Catalog of supported vendors and their capabilities (GET /vendors/catalog). */
+export function listVendorCatalog(): Promise<VendorCatalogEntry[]> {
+	return request<VendorCatalogEntry[]>('/vendors/catalog');
+}
+
 export function listVendors(): Promise<Vendor[]> {
 	return request<Vendor[]>('/vendors');
 }
@@ -377,6 +383,25 @@ export function setVendorKeyEnabled(
 		method: 'PATCH',
 		body: { enabled }
 	});
+}
+
+/** Replace a stored key's secret in place; bumps `key_version` (POST .../rotate). */
+export function rotateVendorKey(
+	id: string,
+	apiKey: string
+): Promise<{ id: string; masked_key: string; key_version: number }> {
+	return request<{ id: string; masked_key: string; key_version: number }>(
+		`/vendors/keys/${encodeURIComponent(id)}/rotate`,
+		{ method: 'POST', body: { api_key: apiKey } }
+	);
+}
+
+/** Rename a stored key's display label (PATCH .../label). */
+export function renameVendorKey(id: string, label: string): Promise<{ id: string; label: string }> {
+	return request<{ id: string; label: string }>(
+		`/vendors/keys/${encodeURIComponent(id)}/label`,
+		{ method: 'PATCH', body: { label } }
+	);
 }
 
 export function deleteVendorKey(id: string): Promise<void> {

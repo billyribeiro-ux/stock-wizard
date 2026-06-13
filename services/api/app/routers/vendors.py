@@ -29,6 +29,14 @@ class EnableRequest(BaseModel):
     enabled: bool
 
 
+class RotateRequest(BaseModel):
+    api_key: str = Field(min_length=1)
+
+
+class LabelRequest(BaseModel):
+    label: str = Field(min_length=1)
+
+
 def _serialize(row) -> dict:
     return {
         "id": str(row.id),
@@ -93,6 +101,40 @@ async def set_enabled(
     if row is None:
         raise HTTPException(404, "key not found")
     return {"id": str(row.id), "enabled": row.enabled}
+
+
+@router.post("/vendors/keys/{key_id}/rotate")
+async def rotate_key(
+    key_id: UUID,
+    req: RotateRequest,
+    session: AsyncSession = Depends(get_session),
+    box: SecretBox = Depends(get_secret_box),
+) -> dict:
+    """Replace a key's secret in place (rotate) — same id/label/scopes, new ciphertext."""
+    try:
+        ciphertext = box.encrypt(req.api_key)
+    except ValueError as exc:
+        raise HTTPException(500, f"encryption unavailable: {exc}") from exc
+    row = await repo.rotate_vendor_key(
+        session,
+        key_id,
+        ciphertext=ciphertext,
+        masked=SecretBox.mask(req.api_key),
+        key_version=box.key_version,
+    )
+    if row is None:
+        raise HTTPException(404, "key not found")
+    return {"id": str(row.id), "masked_key": row.masked, "key_version": row.key_version}
+
+
+@router.patch("/vendors/keys/{key_id}/label")
+async def rename_key(
+    key_id: UUID, req: LabelRequest, session: AsyncSession = Depends(get_session)
+) -> dict:
+    row = await repo.update_vendor_key_label(session, key_id, req.label)
+    if row is None:
+        raise HTTPException(404, "key not found")
+    return {"id": str(row.id), "label": row.label}
 
 
 @router.delete("/vendors/keys/{key_id}", status_code=204)

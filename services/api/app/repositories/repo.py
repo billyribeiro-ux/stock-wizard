@@ -283,6 +283,33 @@ async def set_vendor_key_enabled(
     return row
 
 
+async def rotate_vendor_key(
+    session: AsyncSession, key_id: UUID, ciphertext: bytes, masked: str, key_version: int = 1
+) -> VendorKey | None:
+    """Replace a key's secret in place (rotate) without losing its label/scopes/id."""
+    row = await session.get(VendorKey, key_id)
+    if row is None:
+        return None
+    row.ciphertext = ciphertext
+    row.masked = masked
+    row.key_version = key_version
+    row.last_used_at = None
+    await session.commit()
+    await session.refresh(row)
+    return row
+
+
+async def update_vendor_key_label(
+    session: AsyncSession, key_id: UUID, label: str
+) -> VendorKey | None:
+    row = await session.get(VendorKey, key_id)
+    if row is None:
+        return None
+    row.label = label
+    await session.commit()
+    return row
+
+
 async def delete_vendor_key(session: AsyncSession, key_id: UUID) -> bool:
     row = await session.get(VendorKey, key_id)
     if row is None:

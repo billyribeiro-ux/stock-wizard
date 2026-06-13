@@ -154,7 +154,22 @@ export interface Vendor {
 	masked_key: string;
 	enabled: boolean;
 	scopes: string[];
+	/** Monotonically increasing version, bumped each time the secret is rotated. */
+	key_version?: number;
 	last_used_at?: string | null;
+}
+
+/** Backwards-compatible alias for a stored vendor key. */
+export type VendorKey = Vendor;
+
+/** A vendor the engine can source data from (GET /vendors/catalog). */
+export interface VendorCatalogEntry {
+	vendor: string;
+	label: string;
+	requires_key: boolean;
+	capabilities: string[];
+	docs_url?: string | null;
+	notes?: string | null;
 }
 
 export interface ReportSpec {
