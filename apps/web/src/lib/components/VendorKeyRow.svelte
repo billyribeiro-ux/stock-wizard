@@ -17,7 +17,7 @@
 	let busy = $state(false);
 	let confirmingDelete = $state(false);
 	let renaming = $state(false);
-	let renameValue = $state(vendor.label);
+	let renameValue = $state('');
 	let rotating = $state(false);
 
 	const rotate = $derived(rotateVendorKey.for(vendor.id));
@@ -201,10 +201,10 @@
 
 	{#if rotating}
 		<form
-			{...rotate.enhance(async ({ form, submit }) => {
+			{...rotate.enhance(async (form) => {
 				try {
-					if (await submit()) {
-						form.reset();
+					if (await form.submit()) {
+						form.element.reset();
 						rotating = false;
 					}
 				} catch {
@@ -239,7 +239,9 @@
 			<span class="mt-1 block text-[11px] text-danger">{issue.message}</span>
 		{/each}
 		{#if rotate.result?.success}
-			<span class="mt-1 block text-[11px] text-ok">Secret rotated (now v{rotate.result.key_version}).</span>
+			<span class="mt-1 block text-[11px] text-ok"
+				>Secret rotated (now v{rotate.result.key_version}).</span
+			>
 		{/if}
 	{/if}
 </div>

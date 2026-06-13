@@ -398,10 +398,10 @@ export function rotateVendorKey(
 
 /** Rename a stored key's display label (PATCH .../label). */
 export function renameVendorKey(id: string, label: string): Promise<{ id: string; label: string }> {
-	return request<{ id: string; label: string }>(
-		`/vendors/keys/${encodeURIComponent(id)}/label`,
-		{ method: 'PATCH', body: { label } }
-	);
+	return request<{ id: string; label: string }>(`/vendors/keys/${encodeURIComponent(id)}/label`, {
+		method: 'PATCH',
+		body: { label }
+	});
 }
 
 export function deleteVendorKey(id: string): Promise<void> {

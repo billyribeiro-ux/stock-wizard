@@ -1,15 +1,39 @@
 <script lang="ts">
 	import Icon from '$lib/components/Icon.svelte';
 	import VendorKeyRow from '$lib/components/VendorKeyRow.svelte';
-	import { listVendors, addVendorKey } from './data.remote';
-	import type { Vendor } from '$lib/types';
+	import { listVendors, listVendorCatalog, addVendorKey } from './data.remote';
+	import type { Vendor, VendorCatalogEntry } from '$lib/types';
 
-	const VENDOR_OPTIONS = ['polygon', 'tradier', 'alpaca', 'databento', 'finnhub', 'custom'];
 	const SCOPE_OPTIONS = ['market-data', 'options', 'fundamentals', 'news', 'trading'];
 
 	function selectedScopes(): string[] {
 		const value = addVendorKey.fields.scopes.value();
 		return Array.isArray(value) ? (value as string[]) : [];
+	}
+
+	/** Group stored keys by vendor so each vendor can hold several keys. */
+	function groupByVendor(
+		vendors: Vendor[],
+		catalog: VendorCatalogEntry[]
+	): { vendor: string; label: string; entry?: VendorCatalogEntry; keys: Vendor[] }[] {
+		const catalogByVendor = new Map(catalog.map((c) => [c.vendor, c]));
+		const groups = new Map<string, Vendor[]>();
+		for (const v of vendors) {
+			const list = groups.get(v.vendor) ?? [];
+			list.push(v);
+			groups.set(v.vendor, list);
+		}
+		return [...groups.entries()]
+			.map(([vendor, keys]) => {
+				const entry = catalogByVendor.get(vendor);
+				return { vendor, label: entry?.label ?? keys[0]?.label ?? vendor, entry, keys };
+			})
+			.sort((a, b) => {
+				// FMP (primary equity feed) first, then alphabetical by label
+				if (a.vendor === 'fmp') return -1;
+				if (b.vendor === 'fmp') return 1;
+				return a.label.localeCompare(b.label);
+			});
 	}
 </script>
 
@@ -24,7 +48,8 @@
 			Settings
 		</h1>
 		<p class="mt-1 text-sm text-base-400">
-			Manage vendor API keys used by the engine to source market data.
+			Manage vendor API keys used by the engine to source market data. Add multiple keys per vendor,
+			rotate secrets in place, and swap which key is active.
 		</p>
 	</header>
 
@@ -35,105 +60,185 @@
 			Add a vendor key
 		</h2>
 
-		<form
-			{...addVendorKey.enhance(async (form) => {
-				try {
-					if (await form.submit()) {
-						form.element.reset();
+		{#snippet addForm(catalog: VendorCatalogEntry[])}
+			{@const selectedVendor = addVendorKey.fields.vendor.value()}
+			{@const activeEntry = catalog.find((c) => c.vendor === selectedVendor)}
+			<form
+				{...addVendorKey.enhance(async (form) => {
+					try {
+						if (await form.submit()) {
+							form.element.reset();
+						}
+					} catch {
+						// surfaced via fields.allIssues()
 					}
-				} catch {
-					// surfaced via fields.allIssues()
-				}
-			})}
-			class="space-y-4"
-		>
-			<div class="grid gap-4 sm:grid-cols-2">
-				<label class="block">
-					<span class="mb-1 block text-xs font-medium text-base-300">Vendor</span>
-					<select
-						{...addVendorKey.fields.vendor.as('select')}
-						class="w-full rounded-md border border-base-700 bg-base-900 px-3 py-2 text-sm text-base-100 outline-none focus:border-accent"
-					>
-						{#each VENDOR_OPTIONS as vendor (vendor)}
-							<option value={vendor}>{vendor}</option>
-						{/each}
-					</select>
-					{#each addVendorKey.fields.vendor.issues() as issue, i (i)}
-						<span class="mt-1 block text-[11px] text-danger">{issue.message}</span>
-					{/each}
-				</label>
-
-				<label class="block">
-					<span class="mb-1 block text-xs font-medium text-base-300">Label</span>
-					<input
-						{...addVendorKey.fields.label.as('text')}
-						placeholder="e.g. Polygon prod"
-						class="w-full rounded-md border border-base-700 bg-base-900 px-3 py-2 text-sm text-base-100 outline-none focus:border-accent"
-					/>
-					{#each addVendorKey.fields.label.issues() as issue, i (i)}
-						<span class="mt-1 block text-[11px] text-danger">{issue.message}</span>
-					{/each}
-				</label>
-			</div>
-
-			<label class="block">
-				<span class="mb-1 block text-xs font-medium text-base-300">API key</span>
-				<input
-					{...addVendorKey.fields._api_key.as('password')}
-					placeholder="sk_live_…"
-					autocomplete="off"
-					class="w-full rounded-md border border-base-700 bg-base-900 px-3 py-2 font-mono text-sm text-base-100 outline-none focus:border-accent"
-				/>
-				<span class="mt-1 block text-[11px] text-base-500">
-					Submitted directly to the server; the plaintext key never lives in the browser bundle.
-				</span>
-				{#each addVendorKey.fields._api_key.issues() as issue, i (i)}
-					<span class="mt-1 block text-[11px] text-danger">{issue.message}</span>
-				{/each}
-			</label>
-
-			<div>
-				<span class="mb-2 block text-xs font-medium text-base-300">Scopes</span>
-				<div class="flex flex-wrap gap-2">
-					{#each SCOPE_OPTIONS as scope (scope)}
-						<label
-							class="flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors"
-							class:border-accent={selectedScopes().includes(scope)}
-							class:text-accent={selectedScopes().includes(scope)}
-							class:border-base-700={!selectedScopes().includes(scope)}
-							class:text-base-300={!selectedScopes().includes(scope)}
+				})}
+				class="space-y-4"
+			>
+				<div class="grid gap-4 sm:grid-cols-2">
+					<label class="block">
+						<span class="mb-1 block text-xs font-medium text-base-300">Vendor</span>
+						<select
+							{...addVendorKey.fields.vendor.as('select')}
+							class="w-full rounded-md border border-base-700 bg-base-900 px-3 py-2 text-sm text-base-100 outline-none focus:border-accent"
 						>
-							<input {...addVendorKey.fields.scopes.as('checkbox', scope)} class="accent-accent" />
-							{scope}
-						</label>
-					{/each}
+							{#each catalog as entry (entry.vendor)}
+								<option value={entry.vendor}>
+									{entry.label}{entry.vendor === 'fmp' ? ' — primary equity feed' : ''}
+								</option>
+							{/each}
+						</select>
+						{#each addVendorKey.fields.vendor.issues() as issue, i (i)}
+							<span class="mt-1 block text-[11px] text-danger">{issue.message}</span>
+						{/each}
+					</label>
+
+					<label class="block">
+						<span class="mb-1 block text-xs font-medium text-base-300">Label</span>
+						<input
+							{...addVendorKey.fields.label.as('text')}
+							placeholder="e.g. FMP live"
+							class="w-full rounded-md border border-base-700 bg-base-900 px-3 py-2 text-sm text-base-100 outline-none focus:border-accent"
+						/>
+						{#each addVendorKey.fields.label.issues() as issue, i (i)}
+							<span class="mt-1 block text-[11px] text-danger">{issue.message}</span>
+						{/each}
+					</label>
 				</div>
-			</div>
 
-			{#each addVendorKey.fields.allIssues() as issue, i (i)}
-				<p class="flex items-center gap-1.5 text-sm text-danger">
-					<Icon name="warning-circle" />
-					{issue.message}
-				</p>
-			{/each}
+				{#if activeEntry}
+					<div class="rounded-md border border-base-800 bg-base-900 px-3 py-2 text-xs">
+						<div class="flex flex-wrap items-center gap-2">
+							<span class="font-semibold text-base-200">{activeEntry.label}</span>
+							{#if activeEntry.vendor === 'fmp'}
+								<span
+									class="rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-medium text-accent"
+								>
+									Primary equity data feed
+								</span>
+							{/if}
+							{#if activeEntry.requires_key}
+								<span class="rounded bg-base-800 px-1.5 py-0.5 text-[10px] text-base-300">
+									needs key
+								</span>
+							{:else}
+								<span class="rounded bg-base-800 px-1.5 py-0.5 text-[10px] text-base-400">
+									key optional
+								</span>
+							{/if}
+						</div>
+						{#if activeEntry.capabilities.length > 0}
+							<div class="mt-1.5 flex flex-wrap gap-1">
+								{#each activeEntry.capabilities as cap (cap)}
+									<span class="rounded bg-base-800 px-1.5 py-0.5 text-[10px] text-base-400">
+										{cap}
+									</span>
+								{/each}
+							</div>
+						{/if}
+						{#if activeEntry.notes}
+							<p class="mt-1.5 text-[11px] text-base-500">{activeEntry.notes}</p>
+						{/if}
+						{#if activeEntry.docs_url}
+							<a
+								href={activeEntry.docs_url}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="mt-1.5 inline-flex items-center gap-1 text-[11px] text-accent hover:underline"
+							>
+								<Icon name="arrow-square-out" />
+								docs
+							</a>
+						{/if}
+					</div>
+				{/if}
 
-			{#if addVendorKey.result?.success}
-				<p class="flex items-center gap-1.5 text-sm text-ok">
-					<Icon name="check-circle" />
-					Key added.
-				</p>
-			{/if}
+				<label class="block">
+					<span class="mb-1 block text-xs font-medium text-base-300">API key</span>
+					<input
+						{...addVendorKey.fields._api_key.as('password')}
+						placeholder="sk_live_…"
+						autocomplete="off"
+						class="w-full rounded-md border border-base-700 bg-base-900 px-3 py-2 font-mono text-sm text-base-100 outline-none focus:border-accent"
+					/>
+					<span class="mt-1 block text-[11px] text-base-500">
+						Submitted directly to the server; the plaintext key never lives in the browser bundle.
+					</span>
+					{#each addVendorKey.fields._api_key.issues() as issue, i (i)}
+						<span class="mt-1 block text-[11px] text-danger">{issue.message}</span>
+					{/each}
+				</label>
 
-			<div class="flex justify-end border-t border-base-800 pt-4">
-				<button
-					type="submit"
-					class="flex items-center gap-2 rounded-md bg-accent-strong px-4 py-2 text-sm font-semibold text-base-950 transition-colors hover:bg-accent"
-				>
-					<Icon name="floppy-disk" />
-					Save key
-				</button>
-			</div>
-		</form>
+				<div>
+					<span class="mb-2 block text-xs font-medium text-base-300">Scopes</span>
+					<div class="flex flex-wrap gap-2">
+						{#each SCOPE_OPTIONS as scope (scope)}
+							<label
+								class="flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors"
+								class:border-accent={selectedScopes().includes(scope)}
+								class:text-accent={selectedScopes().includes(scope)}
+								class:border-base-700={!selectedScopes().includes(scope)}
+								class:text-base-300={!selectedScopes().includes(scope)}
+							>
+								<input
+									{...addVendorKey.fields.scopes.as('checkbox', scope)}
+									class="accent-accent"
+								/>
+								{scope}
+							</label>
+						{/each}
+					</div>
+				</div>
+
+				{#each addVendorKey.fields.allIssues() as issue, i (i)}
+					<p class="flex items-center gap-1.5 text-sm text-danger">
+						<Icon name="warning-circle" />
+						{issue.message}
+					</p>
+				{/each}
+
+				{#if addVendorKey.result?.success}
+					<p class="flex items-center gap-1.5 text-sm text-ok">
+						<Icon name="check-circle" />
+						Key added.
+					</p>
+				{/if}
+
+				<div class="flex justify-end border-t border-base-800 pt-4">
+					<button
+						type="submit"
+						class="flex items-center gap-2 rounded-md bg-accent-strong px-4 py-2 text-sm font-semibold text-base-950 transition-colors hover:bg-accent"
+					>
+						<Icon name="floppy-disk" />
+						Save key
+					</button>
+				</div>
+			</form>
+		{/snippet}
+
+		<svelte:boundary>
+			{#snippet pending()}
+				<div class="h-40 animate-pulse rounded-md bg-base-900"></div>
+			{/snippet}
+
+			{@render addForm(await listVendorCatalog())}
+
+			{#snippet failed(error, reset)}
+				<div class="rounded-lg border border-danger/40 bg-base-900 p-6 text-center text-sm">
+					<Icon name="warning-circle" class="text-2xl text-danger" />
+					<p class="mt-2 text-base-200">
+						{error instanceof Error ? error.message : 'Failed to load the vendor catalog.'}
+					</p>
+					<button
+						type="button"
+						onclick={reset}
+						class="mt-3 rounded-md bg-base-800 px-3 py-1.5 text-xs text-base-200"
+					>
+						retry
+					</button>
+				</div>
+			{/snippet}
+		</svelte:boundary>
 	</section>
 
 	<!-- Existing keys -->
@@ -143,7 +248,7 @@
 			Configured keys
 		</h2>
 
-		{#snippet vendorList(vendors: Vendor[])}
+		{#snippet vendorList(vendors: Vendor[], catalog: VendorCatalogEntry[])}
 			{#if vendors.length === 0}
 				<div
 					class="flex h-32 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-base-700 text-sm text-base-500"
@@ -152,9 +257,41 @@
 					No vendor keys configured yet.
 				</div>
 			{:else}
-				<div class="space-y-2">
-					{#each vendors as vendor (vendor.id)}
-						<VendorKeyRow {vendor} />
+				<div class="space-y-6">
+					{#each groupByVendor(vendors, catalog) as group (group.vendor)}
+						<div>
+							<div class="mb-2 flex items-center gap-2">
+								<h3 class="text-sm font-semibold text-base-100">{group.label}</h3>
+								<span class="rounded bg-base-800 px-1.5 py-0.5 text-[11px] text-base-300">
+									{group.vendor}
+								</span>
+								{#if group.vendor === 'fmp'}
+									<span
+										class="rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-medium text-accent"
+									>
+										Primary equity data feed
+									</span>
+								{/if}
+								<span class="text-[11px] text-base-500">
+									{group.keys.length}
+									{group.keys.length === 1 ? 'key' : 'keys'}
+								</span>
+							</div>
+							{#if group.entry && group.entry.capabilities.length > 0}
+								<div class="mb-2 flex flex-wrap gap-1">
+									{#each group.entry.capabilities as cap (cap)}
+										<span class="rounded bg-base-900 px-1.5 py-0.5 text-[10px] text-base-400">
+											{cap}
+										</span>
+									{/each}
+								</div>
+							{/if}
+							<div class="space-y-2">
+								{#each group.keys as vendor (vendor.id)}
+									<VendorKeyRow {vendor} />
+								{/each}
+							</div>
+						</div>
 					{/each}
 				</div>
 			{/if}
@@ -168,7 +305,7 @@
 				</div>
 			{/snippet}
 
-			{@render vendorList(await listVendors())}
+			{@render vendorList(await listVendors(), await listVendorCatalog())}
 
 			{#snippet failed(error, reset)}
 				<div class="rounded-lg border border-danger/40 bg-base-850 p-6 text-center text-sm">
