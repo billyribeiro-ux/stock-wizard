@@ -7,7 +7,7 @@ a premium-gated endpoint returning empty is treated as "no data", not an error.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import requests
@@ -151,9 +151,9 @@ class FinnhubSource(InsiderSource, CongressSource, EarningsSource, NewsSource):
         for r in rows:
             ts = r.get("datetime")
             published = (
-                datetime.fromtimestamp(ts, tz=timezone.utc)
+                datetime.fromtimestamp(ts, tz=UTC)
                 if isinstance(ts, (int, float))
-                else datetime.now(timezone.utc)
+                else datetime.now(UTC)
             )
             out.append(
                 NewsItem(

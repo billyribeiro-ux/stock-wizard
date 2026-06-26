@@ -7,7 +7,7 @@ OHLCV source when an enabled FMP key exists, with yfinance as the keyless fallba
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import requests
@@ -61,12 +61,12 @@ class FMPSource(OhlcvSource):
         if timeframe in _INTRADAY:
             rows = self._get(f"historical-chart/{_INTRADAY[timeframe]}/{symbol}",
                              **{"from": start.date().isoformat(),
-                                "to": (end or datetime.now(timezone.utc)).date().isoformat()})
+                                "to": (end or datetime.now(UTC)).date().isoformat()})
             records = rows if isinstance(rows, list) else []
         else:
             payload = self._get(f"historical-price-full/{symbol}",
                                 **{"from": start.date().isoformat(),
-                                   "to": (end or datetime.now(timezone.utc)).date().isoformat()})
+                                   "to": (end or datetime.now(UTC)).date().isoformat()})
             records = payload.get("historical", []) if isinstance(payload, dict) else []
 
         bars: list[MarketBar] = []
@@ -101,7 +101,7 @@ def _parse_ts(value) -> datetime | None:
         return None
     for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
         try:
-            return datetime.strptime(str(value), fmt).replace(tzinfo=timezone.utc)
+            return datetime.strptime(str(value), fmt).replace(tzinfo=UTC)
         except ValueError:
             continue
     return None

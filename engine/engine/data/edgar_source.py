@@ -10,7 +10,6 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 from datetime import date
 from decimal import Decimal
-from functools import lru_cache
 
 import requests
 
@@ -30,6 +29,8 @@ class EdgarSource(InsiderSource):
         self.headers = {"User-Agent": user_agent or _DEFAULT_UA, "Accept-Encoding": "gzip"}
         self.timeout = timeout
         self.max_filings = max_filings
+        # lazy per-instance ticker->CIK cache (avoids the lru_cache-on-method leak)
+        self._ticker_cache: dict[str, str] | None = None
 
     def _get_json(self, url: str) -> dict:
         try:
@@ -40,13 +41,14 @@ class EdgarSource(InsiderSource):
             raise DataSourceError(f"EDGAR {url} -> HTTP {resp.status_code}")
         return resp.json()
 
-    @lru_cache(maxsize=1)
     def _ticker_map(self) -> dict[str, str]:
-        data = self._get_json(_TICKERS_URL)
-        out: dict[str, str] = {}
-        for row in data.values():
-            out[row["ticker"].upper()] = str(row["cik_str"]).zfill(10)
-        return out
+        if self._ticker_cache is None:
+            data = self._get_json(_TICKERS_URL)
+            out: dict[str, str] = {}
+            for row in data.values():
+                out[row["ticker"].upper()] = str(row["cik_str"]).zfill(10)
+            self._ticker_cache = out
+        return self._ticker_cache
 
     def _cik(self, symbol: str) -> str | None:
         return self._ticker_map().get(symbol.upper())
@@ -65,7 +67,7 @@ class EdgarSource(InsiderSource):
 
         out: list[InsiderTransaction] = []
         seen = 0
-        for form, accn, doc in zip(forms, accns, docs):
+        for form, accn, doc in zip(forms, accns, docs, strict=False):
             if form != "4":
                 continue
             seen += 1
@@ -79,9 +81,7 @@ class EdgarSource(InsiderSource):
                 continue
         return out
 
-    def _parse_form4(
-        self, symbol: str, url: str, since: date | None
-    ) -> list[InsiderTransaction]:
+    def _parse_form4(self, symbol: str, url: str, since: date | None) -> list[InsiderTransaction]:
         try:
             resp = requests.get(url, headers=self.headers, timeout=self.timeout)
         except requests.RequestException:  # pragma: no cover - network

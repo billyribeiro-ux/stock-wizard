@@ -9,8 +9,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-from ..schemas import OHLCV, BarFlag, MarketBar
 from common.timeutils import is_regular_hours
+
+from ..schemas import OHLCV, BarFlag, MarketBar
 
 
 @dataclass

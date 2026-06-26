@@ -8,12 +8,11 @@ the gamma scanner defaults to SPY (see scanners/spx_gamma_command.py).
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from ..schemas import (
     OHLCV,
-    AssetClass,
     MarketBar,
     OptionChain,
     OptionContract,
@@ -74,10 +73,7 @@ class YFinanceSource(OhlcvSource, OptionSource):
         bars: list[MarketBar] = []
         for idx, row in df.iterrows():
             ts = idx.to_pydatetime()
-            if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=timezone.utc)
-            else:
-                ts = ts.astimezone(timezone.utc)
+            ts = ts.replace(tzinfo=UTC) if ts.tzinfo is None else ts.astimezone(UTC)
             try:
                 bar = MarketBar(
                     symbol=symbol,
@@ -107,7 +103,7 @@ class YFinanceSource(OhlcvSource, OptionSource):
             raise DataSourceError(f"yfinance options unavailable for {underlying}: {exc}") from exc
 
         if not expiries:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             return OptionChain(
                 underlying=underlying, as_of=now, spot=Decimal(0), contracts=[], degraded=True
             )
@@ -118,7 +114,7 @@ class YFinanceSource(OhlcvSource, OptionSource):
 
         oc = tkr.option_chain(target)
         spot = self._spot(tkr)
-        as_of = datetime.now(timezone.utc)
+        as_of = datetime.now(UTC)
         exp_date = date.fromisoformat(target)
 
         contracts: list[OptionContract] = []
