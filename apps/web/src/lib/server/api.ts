@@ -408,6 +408,37 @@ export function deleteVendorKey(id: string): Promise<void> {
 	return request<void>(`/vendors/keys/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
+// --- Charles Schwab OAuth2 (3-legged) ---------------------------------------
+
+export interface SchwabConnectPayload {
+	app_key: string;
+	app_secret: string;
+	redirect_uri: string;
+	label: string;
+}
+
+/** Step 1: store the app key/secret and get the Schwab authorize URL. */
+export function schwabConnect(
+	payload: SchwabConnectPayload
+): Promise<{ id: string; authorize_url: string }> {
+	return request<{ id: string; authorize_url: string }>('/vendors/schwab/connect', {
+		method: 'POST',
+		body: payload
+	});
+}
+
+/** Step 2: exchange the returned code/redirect URL for tokens and enable the key. */
+export function schwabExchange(payload: {
+	key_id: string;
+	code?: string;
+	redirect_url?: string;
+}): Promise<{ id: string; enabled: boolean; connected: boolean }> {
+	return request<{ id: string; enabled: boolean; connected: boolean }>('/vendors/schwab/token', {
+		method: 'POST',
+		body: payload
+	});
+}
+
 // --- Alerts --------------------------------------------------------------------
 
 export function listAlertRules(): Promise<AlertRulesResponse> {

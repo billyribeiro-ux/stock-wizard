@@ -299,6 +299,23 @@ async def rotate_vendor_key(
     return row
 
 
+async def update_vendor_key_ciphertext(
+    session: AsyncSession, key_id: UUID, ciphertext: bytes
+) -> VendorKey | None:
+    """Persist a new ciphertext bundle in place (e.g. refreshed Schwab OAuth tokens).
+
+    Unlike ``rotate_vendor_key`` this preserves masked/key_version/last_used_at — it is
+    an internal credential refresh, not a user-initiated secret swap.
+    """
+    row = await session.get(VendorKey, key_id)
+    if row is None:
+        return None
+    row.ciphertext = ciphertext
+    await session.commit()
+    await session.refresh(row)
+    return row
+
+
 async def update_vendor_key_label(
     session: AsyncSession, key_id: UUID, label: str
 ) -> VendorKey | None:

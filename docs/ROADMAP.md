@@ -24,6 +24,8 @@ and signal generator from the blueprint is a checkbox here. Tick items as they s
 - [x] yfinance OHLCV + option-chain adapter
 - [x] SEC EDGAR insider (Form 4) adapter — keyless
 - [x] Finnhub adapter — insider, congress, earnings, news (keyed)
+- [x] FMP adapter — primary equity OHLCV (adjusted daily + intraday, keyed)
+- [x] Charles Schwab adapter — OAuth2 equity OHLCV + real option chains w/ vendor greeks (keyed)
 - [x] Market-internals stub (TICK/TRIN/VOLD/ADD) behind the real interface
 - [x] Data validation (gaps, splits, zero-vol, out-of-hours, impossible)
 - [x] Postgres/TimescaleDB models + Alembic migration (hypertables: ohlcv, internals, option_chains)

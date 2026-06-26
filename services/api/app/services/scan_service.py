@@ -90,7 +90,9 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
         timeframe = Timeframe(run.timeframe)
         start = _start_for(str(run.params.get("history", "6mo")))
         ohlcv_src = await _resolve_ohlcv_source(session, run.params.get("data_vendor"))
-        opt_src = build_option_source("yfinance") if run.scanner_id in _NEEDS_OPTIONS else None
+        opt_src = (
+            await _resolve_option_source(session) if run.scanner_id in _NEEDS_OPTIONS else None
+        )
         factory = FeatureFactory()
         calibrator = await repo.get_latest_calibrator(session, run.scanner_id)
 
@@ -192,7 +194,11 @@ async def _resolve_ohlcv_source(session, requested: str | None = None):
     when keyed. On any FMP construction failure we degrade to yfinance so scans never break.
     """
     vendor = requested or "fmp"
-    if vendor == "fmp":
+    if vendor == "schwab":
+        src = await _try_schwab_source(session)
+        if src is not None:
+            return src
+    if vendor in ("fmp", "schwab"):
         key_row = await repo.get_enabled_key_for(session, "fmp")
         if key_row is not None:
             from ..security import get_secret_box
@@ -202,9 +208,33 @@ async def _resolve_ohlcv_source(session, requested: str | None = None):
                 return build_ohlcv_source("fmp", api_key)
             except Exception:
                 pass
-        if requested == "fmp":  # explicitly forced but unavailable -> still fall back safely
-            pass
     return build_ohlcv_source("yfinance")
+
+
+async def _try_schwab_source(session):
+    """Build a Schwab adapter from the enabled key, auto-refreshing the token.
+
+    Returns ``None`` (so callers can fall back) if no enabled Schwab key exists or the
+    token refresh fails. The same ``SchwabSource`` serves both OHLCV and option chains.
+    """
+    key_row = await repo.get_enabled_key_for(session, "schwab")
+    if key_row is None:
+        return None
+    try:
+        from .schwab_creds import ensure_access_token
+
+        token = await ensure_access_token(session, key_row)
+        return build_ohlcv_source("schwab", token)
+    except Exception:
+        return None
+
+
+async def _resolve_option_source(session):
+    """Prefer Schwab (real vendor greeks/OI/IV) for option chains; fall back to yfinance."""
+    src = await _try_schwab_source(session)
+    if src is not None:
+        return src
+    return build_option_source("yfinance")
 
 
 async def _fetch_flow(session, symbol: str):

@@ -29,8 +29,8 @@ apps/web/.vercel/
 *.key
 master.key
 
-# Data / artifacts
-data/
+# Data / artifacts (root-level only — must NOT match the engine/engine/data package)
+/data/
 *.parquet
 *.duckdb
 exports/

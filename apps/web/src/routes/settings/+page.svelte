@@ -1,10 +1,22 @@
 <script lang="ts">
 	import Icon from '$lib/components/Icon.svelte';
 	import VendorKeyRow from '$lib/components/VendorKeyRow.svelte';
-	import { listVendors, listVendorCatalog, addVendorKey } from './data.remote';
+	import {
+		listVendors,
+		listVendorCatalog,
+		addVendorKey,
+		connectSchwab,
+		exchangeSchwabCode
+	} from './data.remote';
 	import type { Vendor, VendorCatalogEntry } from '$lib/types';
 
 	const SCOPE_OPTIONS = ['market-data', 'options', 'fundamentals', 'news', 'trading'];
+
+	// Schwab OAuth flow: connect (step 1) yields an authorize URL + credential id we
+	// carry into the token exchange (step 2).
+	let schwabAuthUrl = $state('');
+	let schwabKeyId = $state('');
+	let schwabConnected = $state(false);
 
 	function selectedScopes(): string[] {
 		const value = addVendorKey.fields.scopes.value();
@@ -239,6 +251,183 @@
 				</div>
 			{/snippet}
 		</svelte:boundary>
+	</section>
+
+	<!-- Charles Schwab OAuth -->
+	<section class="rounded-lg border border-base-700 bg-base-850 p-5">
+		<h2 class="mb-1 flex items-center gap-2 text-sm font-semibold text-base-100">
+			<Icon name="plugs-connected" class="text-accent" />
+			Connect Charles Schwab
+		</h2>
+		<p class="mb-4 text-xs text-base-400">
+			Schwab uses OAuth2. Enter your app key & secret to get an authorization link, approve it in
+			the browser, then paste the URL Schwab redirects you to. Provides real option chains with
+			vendor greeks/OI/IV (preferred for the gamma engine) plus equity OHLCV.
+		</p>
+
+		<!-- Step 1: app credentials -> authorize URL -->
+		<form
+			{...connectSchwab.enhance(async (form) => {
+				try {
+					if (await form.submit()) {
+						const result = connectSchwab.result;
+						if (result?.success) {
+							schwabAuthUrl = result.authorize_url;
+							schwabKeyId = result.id;
+							schwabConnected = false;
+						}
+					}
+				} catch {
+					// surfaced via fields.allIssues()
+				}
+			})}
+			class="space-y-4"
+		>
+			<div class="grid gap-4 sm:grid-cols-2">
+				<label class="block">
+					<span class="mb-1 block text-xs font-medium text-base-300">App key</span>
+					<input
+						{...connectSchwab.fields._app_key.as('password')}
+						placeholder="Schwab app key"
+						autocomplete="off"
+						class="w-full rounded-md border border-base-700 bg-base-900 px-3 py-2 font-mono text-sm text-base-100 outline-none focus:border-accent"
+					/>
+					{#each connectSchwab.fields._app_key.issues() as issue, i (i)}
+						<span class="mt-1 block text-[11px] text-danger">{issue.message}</span>
+					{/each}
+				</label>
+				<label class="block">
+					<span class="mb-1 block text-xs font-medium text-base-300">App secret</span>
+					<input
+						{...connectSchwab.fields._app_secret.as('password')}
+						placeholder="Schwab app secret"
+						autocomplete="off"
+						class="w-full rounded-md border border-base-700 bg-base-900 px-3 py-2 font-mono text-sm text-base-100 outline-none focus:border-accent"
+					/>
+					{#each connectSchwab.fields._app_secret.issues() as issue, i (i)}
+						<span class="mt-1 block text-[11px] text-danger">{issue.message}</span>
+					{/each}
+				</label>
+			</div>
+
+			<div class="grid gap-4 sm:grid-cols-2">
+				<label class="block">
+					<span class="mb-1 block text-xs font-medium text-base-300">Redirect URI</span>
+					<input
+						{...connectSchwab.fields.redirect_uri.as('text')}
+						value="https://127.0.0.1:8182"
+						class="w-full rounded-md border border-base-700 bg-base-900 px-3 py-2 font-mono text-sm text-base-100 outline-none focus:border-accent"
+					/>
+					<span class="mt-1 block text-[11px] text-base-500">
+						Must exactly match the callback URL registered on your Schwab app.
+					</span>
+					{#each connectSchwab.fields.redirect_uri.issues() as issue, i (i)}
+						<span class="mt-1 block text-[11px] text-danger">{issue.message}</span>
+					{/each}
+				</label>
+				<label class="block">
+					<span class="mb-1 block text-xs font-medium text-base-300">Label</span>
+					<input
+						{...connectSchwab.fields.label.as('text')}
+						placeholder="Charles Schwab"
+						class="w-full rounded-md border border-base-700 bg-base-900 px-3 py-2 text-sm text-base-100 outline-none focus:border-accent"
+					/>
+				</label>
+			</div>
+
+			{#each connectSchwab.fields.allIssues() as issue, i (i)}
+				<p class="flex items-center gap-1.5 text-sm text-danger">
+					<Icon name="warning-circle" />
+					{issue.message}
+				</p>
+			{/each}
+
+			<div class="flex justify-end">
+				<button
+					type="submit"
+					class="flex items-center gap-2 rounded-md bg-accent-strong px-4 py-2 text-sm font-semibold text-base-950 transition-colors hover:bg-accent"
+				>
+					<Icon name="link" />
+					Get authorize link
+				</button>
+			</div>
+		</form>
+
+		<!-- Step 2: authorize + paste returned URL -->
+		{#if schwabAuthUrl}
+			<div class="mt-5 space-y-4 border-t border-base-800 pt-5">
+				<div class="rounded-md border border-accent/40 bg-base-900 px-3 py-2 text-xs">
+					<p class="text-base-300">
+						1. Open the authorize link, log in, and approve access:
+					</p>
+					<a
+						href={schwabAuthUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="mt-1.5 inline-flex items-center gap-1 break-all text-[11px] text-accent hover:underline"
+					>
+						<Icon name="arrow-square-out" />
+						{schwabAuthUrl}
+					</a>
+					<p class="mt-2 text-base-300">
+						2. After approving, your browser is redirected to your callback URL. Copy that full URL
+						(it contains <code class="text-accent">?code=…</code>) and paste it below.
+					</p>
+				</div>
+
+				<form
+					{...exchangeSchwabCode.enhance(async (form) => {
+						try {
+							if (await form.submit()) {
+								schwabConnected = true;
+								schwabAuthUrl = '';
+							}
+						} catch {
+							// surfaced via fields.allIssues()
+						}
+					})}
+					class="space-y-3"
+				>
+					<input type="hidden" {...exchangeSchwabCode.fields.key_id.as('text')} value={schwabKeyId} />
+					<label class="block">
+						<span class="mb-1 block text-xs font-medium text-base-300">Redirected URL</span>
+						<input
+							{...exchangeSchwabCode.fields.redirect_url.as('text')}
+							placeholder="https://127.0.0.1:8182/?code=…"
+							autocomplete="off"
+							class="w-full rounded-md border border-base-700 bg-base-900 px-3 py-2 font-mono text-sm text-base-100 outline-none focus:border-accent"
+						/>
+						{#each exchangeSchwabCode.fields.redirect_url.issues() as issue, i (i)}
+							<span class="mt-1 block text-[11px] text-danger">{issue.message}</span>
+						{/each}
+					</label>
+
+					{#each exchangeSchwabCode.fields.allIssues() as issue, i (i)}
+						<p class="flex items-center gap-1.5 text-sm text-danger">
+							<Icon name="warning-circle" />
+							{issue.message}
+						</p>
+					{/each}
+
+					<div class="flex justify-end">
+						<button
+							type="submit"
+							class="flex items-center gap-2 rounded-md bg-accent-strong px-4 py-2 text-sm font-semibold text-base-950 transition-colors hover:bg-accent"
+						>
+							<Icon name="check" />
+							Complete connection
+						</button>
+					</div>
+				</form>
+			</div>
+		{/if}
+
+		{#if schwabConnected}
+			<p class="mt-4 flex items-center gap-1.5 text-sm text-ok">
+				<Icon name="check-circle" />
+				Schwab connected — the key is enabled and ready for scans.
+			</p>
+		{/if}
 	</section>
 
 	<!-- Existing keys -->
