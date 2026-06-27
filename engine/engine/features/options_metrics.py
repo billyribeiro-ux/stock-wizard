@@ -120,10 +120,13 @@ def put_call_skew(
         return None
     p = min(puts, key=lambda c: abs(float(c.strike) - put_target))
     c_ = min(calls, key=lambda c: abs(float(c.strike) - call_target))
+    p_iv, c_iv = p.iv, c_.iv
+    if p_iv is None or c_iv is None:  # guaranteed by the `c.iv` filter above; narrows for mypy
+        return None
     return Skew(
-        put_iv=p.iv,
-        call_iv=c_.iv,
-        skew=p.iv - c_.iv,
+        put_iv=p_iv,
+        call_iv=c_iv,
+        skew=p_iv - c_iv,
         put_strike=float(p.strike),
         call_strike=float(c_.strike),
     )

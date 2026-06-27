@@ -7,13 +7,7 @@
 		listForwardTests,
 		listForwardScanners
 	} from './data.remote';
-	import type {
-		ForwardTest,
-		ForwardReport,
-		BacktestMetrics,
-		Promotion,
-		Scanner
-	} from '$lib/types';
+	import type { ForwardTest, ForwardReport, BacktestMetrics, Promotion, Scanner } from '$lib/types';
 
 	const TIMEFRAMES = ['5m', '15m', '1h', '4h', '1d', '1w'] as const;
 	const HISTORY_WINDOWS = ['1y', '2y', '5y', '10y', '20y'] as const;
@@ -441,9 +435,7 @@
 								<div class="flex items-center gap-3">
 									<Icon name={promo.icon} class="text-3xl {promo.text}" />
 									<div>
-										<div
-											class="text-[11px] font-medium tracking-widest text-base-400 uppercase"
-										>
+										<div class="text-[11px] font-medium tracking-widest text-base-400 uppercase">
 											Verdict
 										</div>
 										<div class="text-2xl font-bold {promo.text}">{promo.label}</div>
@@ -541,7 +533,9 @@
 										</div>
 									</div>
 									<div class="rounded-lg border border-base-700 bg-base-900 p-3">
-										<div class="text-[11px] tracking-wide text-base-500 uppercase">Worst Max DD</div>
+										<div class="text-[11px] tracking-wide text-base-500 uppercase">
+											Worst Max DD
+										</div>
 										<div class="mt-1 font-mono text-lg font-semibold text-short">
 											{fmtMetric(mc?.worst_max_dd, 'pct')}
 										</div>

@@ -257,7 +257,8 @@
 				<h2 class="flex items-center gap-2 text-sm font-semibold text-base-100">
 					<Icon name="function" class="text-accent" />
 					Feature information
-					<span class="text-xs font-normal text-base-500">mutual information vs. forward label</span>
+					<span class="text-xs font-normal text-base-500">mutual information vs. forward label</span
+					>
 				</h2>
 				<button
 					type="button"
@@ -277,7 +278,9 @@
 			{/if}
 
 			{#if !featureArgs}
-				<p class="text-xs text-base-500">Run an analysis to rank features by information content.</p>
+				<p class="text-xs text-base-500">
+					Run an analysis to rank features by information content.
+				</p>
 			{:else}
 				<svelte:boundary>
 					{#snippet pending()}
@@ -623,7 +626,8 @@
 								{#each report.mined_rules as rule, i (i)}
 									<tr class="border-t border-base-800">
 										<td class="py-1.5 pr-3 font-mono text-base-200">{rule.description}</td>
-										<td class="py-1.5 pr-3 text-right font-mono text-base-300">{rule.train_hits}</td>
+										<td class="py-1.5 pr-3 text-right font-mono text-base-300">{rule.train_hits}</td
+										>
 										<td
 											class="py-1.5 pr-3 text-right font-mono"
 											class:text-long={rule.train_mean_return > 0}

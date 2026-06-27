@@ -413,7 +413,7 @@ class VixTermStructureScanner(Scanner):
         ts = mi.vix_term_structure(ctx.aux)
         if ts is None:
             return flat(self, ctx, "no_vix_data", "VIX complex unavailable.", "internals")
-        if ts.backwardation:
+        if ts.backwardation and ts.term_ratio is not None:
             return make_result(
                 self,
                 ctx,

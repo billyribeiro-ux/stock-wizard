@@ -100,6 +100,7 @@ def test_discovery_insufficient_history():
 
 def test_discovery_csv_and_pdf_export():
     report = discover(make_ohlcv(n=400, amp=4.0), min_move_atr=1.0)
+    assert report is not None
     csv_text = discovery_to_csv(report)
     assert csv_text.splitlines()[0].startswith("ts,kind,price")
     assert len(csv_text.splitlines()) == report.n_events + 1

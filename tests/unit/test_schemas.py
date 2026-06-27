@@ -92,7 +92,7 @@ def test_signal_packet_round_trip():
 
 def test_scanner_result_extra_forbidden():
     with pytest.raises(ValidationError):
-        ScannerResult(
+        ScannerResult(  # type: ignore[call-arg]  # intentional: extra field must be rejected
             scanner_id="s",
             symbol="SPY",
             timeframe=Timeframe.M5,

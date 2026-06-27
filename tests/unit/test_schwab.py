@@ -76,6 +76,7 @@ def test_parse_leg_with_real_greeks():
     assert oc.right is OptionRight.CALL
     assert oc.greeks is not None and oc.greeks.computed is False
     assert oc.greeks.delta == 0.45
+    assert oc.iv is not None
     assert abs(oc.iv - 0.185) < 1e-9
     assert oc.open_interest == 5000
     assert oc.expiry.isoformat() == "2026-06-27"

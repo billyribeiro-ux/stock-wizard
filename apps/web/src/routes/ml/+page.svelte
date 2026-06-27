@@ -300,7 +300,9 @@
 								<!-- Metric stat cards -->
 								<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
 									<div class="rounded-lg border border-base-700 bg-base-850 p-3">
-										<div class="text-[11px] tracking-wide text-base-500 uppercase">Test Accuracy</div>
+										<div class="text-[11px] tracking-wide text-base-500 uppercase">
+											Test Accuracy
+										</div>
 										<div class="mt-1 font-mono text-lg font-semibold text-base-50">
 											{fmtPct(report.test_accuracy)}
 										</div>
@@ -309,7 +311,9 @@
 										</div>
 									</div>
 									<div class="rounded-lg border border-base-700 bg-base-850 p-3">
-										<div class="text-[11px] tracking-wide text-base-500 uppercase">Train Accuracy</div>
+										<div class="text-[11px] tracking-wide text-base-500 uppercase">
+											Train Accuracy
+										</div>
 										<div class="mt-1 font-mono text-lg font-semibold text-base-50">
 											{fmtPct(report.train_accuracy)}
 										</div>

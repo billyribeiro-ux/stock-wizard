@@ -53,7 +53,7 @@ def compute_metrics(
     if n == 0:
         return BacktestMetrics()
 
-    pnls = [float(t.pnl) for t in closed]
+    pnls = [float(t.pnl) for t in closed if t.pnl is not None]
     rets = [t.return_pct for t in closed if t.return_pct is not None]
     wins = [p for p in pnls if p > 0]
     losses = [p for p in pnls if p <= 0]

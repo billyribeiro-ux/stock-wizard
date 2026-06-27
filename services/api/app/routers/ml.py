@@ -46,7 +46,9 @@ async def train(
         session, model_id, name=f"{req.scanner_id}:{req.symbol}", version="gb-1", status="training"
     )
     args = (model_id, req.scanner_id, req.symbol.upper(), req.timeframe, req.history, req.horizon)
-    enqueued = await enqueue_training(*[str(a) for a in args[:1]] + list(args[1:]))
+    enqueued = await enqueue_training(
+        str(model_id), req.scanner_id, req.symbol.upper(), req.timeframe, req.history, req.horizon
+    )
     if not enqueued:
         background.add_task(_run_inline, *args)
     return {"model_id": str(model_id), "enqueued": enqueued}

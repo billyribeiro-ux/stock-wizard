@@ -59,14 +59,22 @@ class FMPSource(OhlcvSource):
         self, symbol: str, timeframe: Timeframe, start: datetime, end: datetime | None = None
     ) -> OHLCV:
         if timeframe in _INTRADAY:
-            rows = self._get(f"historical-chart/{_INTRADAY[timeframe]}/{symbol}",
-                             **{"from": start.date().isoformat(),
-                                "to": (end or datetime.now(UTC)).date().isoformat()})
+            rows = self._get(
+                f"historical-chart/{_INTRADAY[timeframe]}/{symbol}",
+                **{
+                    "from": start.date().isoformat(),
+                    "to": (end or datetime.now(UTC)).date().isoformat(),
+                },
+            )
             records = rows if isinstance(rows, list) else []
         else:
-            payload = self._get(f"historical-price-full/{symbol}",
-                                **{"from": start.date().isoformat(),
-                                   "to": (end or datetime.now(UTC)).date().isoformat()})
+            payload = self._get(
+                f"historical-price-full/{symbol}",
+                **{
+                    "from": start.date().isoformat(),
+                    "to": (end or datetime.now(UTC)).date().isoformat(),
+                },
+            )
             records = payload.get("historical", []) if isinstance(payload, dict) else []
 
         bars: list[MarketBar] = []

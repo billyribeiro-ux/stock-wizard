@@ -58,5 +58,6 @@ def test_empty_chain_returns_none():
 def test_per_strike_net_consistency():
     chain = make_chain(spot=124.0)
     gp = compute_gex_profile(chain, t_years=T)
-    total = sum(s.net for s in gp.per_strike)
+    assert gp is not None
+    total = sum((s.net for s in gp.per_strike), 0.0)
     assert total == pytest.approx(gp.total_gex, rel=1e-9)

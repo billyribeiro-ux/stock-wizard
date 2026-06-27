@@ -62,7 +62,7 @@ def analyze_failures(trades: list[TradeRecord]) -> FailureAnalysis:
         )
     worst = min(
         (t for t in trades if t.pnl is not None),
-        key=lambda t: float(t.pnl),
+        key=lambda t: float(t.pnl) if t.pnl is not None else 0.0,
         default=None,
     )
     worst_d = None

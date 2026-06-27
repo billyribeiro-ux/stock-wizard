@@ -64,9 +64,13 @@ KNOWN_VENDORS: list[VendorInfo] = [
         "greeks/OI/IV — preferred for the gamma engine — plus equity OHLCV.",
     ),
     # --- adapter slots for paid market-data vendors (plug in later) ---
-    VendorInfo("polygon", "Polygon.io", True, [Capability.OHLCV, Capability.OPTIONS], notes="planned"),
+    VendorInfo(
+        "polygon", "Polygon.io", True, [Capability.OHLCV, Capability.OPTIONS], notes="planned"
+    ),
     VendorInfo("tradier", "Tradier", True, [Capability.OHLCV, Capability.OPTIONS], notes="planned"),
-    VendorInfo("theta", "Theta Data", True, [Capability.OPTIONS, Capability.INTERNALS], notes="planned"),
+    VendorInfo(
+        "theta", "Theta Data", True, [Capability.OPTIONS, Capability.INTERNALS], notes="planned"
+    ),
     VendorInfo("orats", "ORATS", True, [Capability.OPTIONS], notes="planned"),
     VendorInfo("cboe", "CBOE", True, [Capability.OPTIONS, Capability.INTERNALS], notes="planned"),
 ]

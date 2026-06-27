@@ -26,14 +26,16 @@ def test_rvol_spike_detected():
     df = ohlcv_to_frame(make_ohlcv())
     # Force a volume spike on the last bar.
     df.iloc[-1, df.columns.get_loc("volume")] = df["volume"].median() * 5
-    assert vol_mod.rvol(df, 20) > 3
+    rv = vol_mod.rvol(df, 20)
+    assert rv is not None and rv > 3
 
 
 def test_volume_slope_sign():
     df = ohlcv_to_frame(make_ohlcv())
     rising = df.copy()
     rising.iloc[-5:, rising.columns.get_loc("volume")] = [100, 200, 300, 400, 500]
-    assert vol_mod.volume_slope(rising, 5) > 0
+    slope = vol_mod.volume_slope(rising, 5)
+    assert slope is not None and slope > 0
 
 
 def test_volume_profile_poc_at_high_volume_price():

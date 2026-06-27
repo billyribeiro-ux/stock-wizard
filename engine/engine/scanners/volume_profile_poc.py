@@ -58,7 +58,7 @@ class VolumeProfilePocScanner(Scanner):
         rvol_accept = float(self._p("rvol_accept", ctx))
         band_frac = float(self._p("poc_band_frac", ctx))
 
-        if None in (poc, vah, val, close):
+        if poc is None or vah is None or val is None or close is None:
             return _flat(self, ctx, "insufficient_data", "Profile could not be built.")
 
         va_width = max(vah - val, 1e-9)

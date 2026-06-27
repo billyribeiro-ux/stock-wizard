@@ -15,18 +15,15 @@ const RunGammaSchema = v.object({
  * single-symbol universe, then returns the new `run_id`. The page polls
  * `getGammaRun` until finished and loads `getGammaResults`.
  */
-export const runGammaScan = command(
-	RunGammaSchema,
-	async (input): Promise<{ run_id: string }> => {
-		return api.startScan({
-			scanner_id: GAMMA_SCANNER_ID,
-			symbols: [input.underlying.trim().toUpperCase()],
-			timeframe: input.timeframe,
-			history: '1d',
-			params: {}
-		});
-	}
-);
+export const runGammaScan = command(RunGammaSchema, async (input): Promise<{ run_id: string }> => {
+	return api.startScan({
+		scanner_id: GAMMA_SCANNER_ID,
+		symbols: [input.underlying.trim().toUpperCase()],
+		timeframe: input.timeframe,
+		history: '1d',
+		params: {}
+	});
+});
 
 /** Status of a gamma scan run (polled until finished). */
 export const getGammaRun = query(v.pipe(v.string(), v.nonEmpty()), async (runId) => {

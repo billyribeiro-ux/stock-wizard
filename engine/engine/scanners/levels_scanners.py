@@ -181,7 +181,7 @@ class OpeningRangeScanner(Scanner):
         if df is None or not ctx.timeframe.is_intraday:
             return flat(self, ctx, "not_intraday", "Opening range needs intraday bars.")
         sl = lv.session_levels(df, self.params["minutes"])
-        if sl is None or sl.opening_range_high is None:
+        if sl is None or sl.opening_range_high is None or sl.opening_range_low is None:
             return flat(self, ctx, "insufficient_data", "Opening range unavailable.")
         close = float(df["close"].iloc[-1])
         if close > sl.opening_range_high:

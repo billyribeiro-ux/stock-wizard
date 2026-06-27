@@ -10,6 +10,9 @@ export const listReplayableBacktests = query(async (): Promise<BacktestSummary[]
 });
 
 /** Full backtest record, including trades and the equity curve. */
-export const getBacktest = query(v.pipe(v.string(), v.nonEmpty()), async (id): Promise<Backtest> => {
-	return api.getBacktest(id);
-});
+export const getBacktest = query(
+	v.pipe(v.string(), v.nonEmpty()),
+	async (id): Promise<Backtest> => {
+		return api.getBacktest(id);
+	}
+);

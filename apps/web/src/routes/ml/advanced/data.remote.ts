@@ -1,12 +1,7 @@
 import * as v from 'valibot';
 import { query, command } from '$app/server';
 import * as api from '$lib/server/api';
-import type {
-	FeatureInfoReport,
-	LeakageAuditReport,
-	MlAdvancedJob,
-	Scanner
-} from '$lib/types';
+import type { FeatureInfoReport, LeakageAuditReport, MlAdvancedJob, Scanner } from '$lib/types';
 
 /** Full scanner catalogue, used to populate the scanner_id pickers. */
 export const listScanners = query(async (): Promise<Scanner[]> => {
@@ -76,13 +71,10 @@ const MineRulesSchema = v.object({
 });
 
 /** Start a rule-mining job; poll `getAdvancedJob(model_id)` until done. */
-export const mineRules = command(
-	MineRulesSchema,
-	async (input): Promise<{ model_id: string }> => {
-		const { model_id } = await api.mineRules(input);
-		return { model_id };
-	}
-);
+export const mineRules = command(MineRulesSchema, async (input): Promise<{ model_id: string }> => {
+	const { model_id } = await api.mineRules(input);
+	return { model_id };
+});
 
 /** Poll a self-learning job (calibrate / meta / mine) until status leaves `training`. */
 export const getAdvancedJob = query(

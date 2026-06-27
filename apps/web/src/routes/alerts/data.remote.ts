@@ -37,7 +37,10 @@ const CreateRuleSchema = v.object({
 
 /** Create an alert rule and refresh the rule list in the same flight. */
 export const createRule = command(CreateRuleSchema, async (input): Promise<{ id: string }> => {
-	const { id } = await api.createAlertRule({ ...input, classifications: input.classifications ?? [] });
+	const { id } = await api.createAlertRule({
+		...input,
+		classifications: input.classifications ?? []
+	});
 	void listRules().refresh();
 	return { id };
 });

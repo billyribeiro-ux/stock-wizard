@@ -64,8 +64,8 @@ def audit_feature_lookahead(
     full = feature_fn(df)
     features = list(full.columns)
     # Evenly spaced probe points across the post-warmup region.
-    probes = np.linspace(warmup, len(df) - 2, num=min(n_probes, len(df) - warmup - 1))
-    probes = sorted({int(p) for p in probes})
+    probe_space = np.linspace(warmup, len(df) - 2, num=min(n_probes, len(df) - warmup - 1))
+    probes = sorted({int(p) for p in probe_space})
 
     leaks: list[Leak] = []
     max_diff: dict[str, float] = dict.fromkeys(features, 0.0)

@@ -15,9 +15,7 @@ def is_trading_day(d: date) -> bool:
 
 
 def last_trading_day(d: date) -> date:
-    sched = _NYSE.schedule(
-        start_date=(d.replace(day=1)).isoformat(), end_date=d.isoformat()
-    )
+    sched = _NYSE.schedule(start_date=(d.replace(day=1)).isoformat(), end_date=d.isoformat())
     if sched.empty:
         return d
     return sched.index[-1].date()

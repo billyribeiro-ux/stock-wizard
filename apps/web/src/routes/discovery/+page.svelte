@@ -178,8 +178,8 @@
 			Discovery Lab
 		</h1>
 		<p class="mt-1 text-sm text-base-400">
-			Replay past price history and self-identify why price was bought and sold at every
-			significant turn, per trade style.
+			Replay past price history and self-identify why price was bought and sold at every significant
+			turn, per trade style.
 		</p>
 	</header>
 
@@ -344,7 +344,9 @@
 												<span>{fmtTs(item.created_at)}</span>
 											</div>
 											{#if item.metrics}
-												<div class="mt-1 flex items-center gap-3 font-mono text-[11px] text-base-400">
+												<div
+													class="mt-1 flex items-center gap-3 font-mono text-[11px] text-base-400"
+												>
 													{#if item.metrics.n_events !== undefined}
 														<span>turns {item.metrics.n_events}</span>
 													{/if}
@@ -422,7 +424,10 @@
 																class="h-full rounded-full {tone === 'long'
 																	? 'bg-long'
 																	: 'bg-short'}"
-																style="width: {Math.min(100, Math.max(0, row.pct_of_events * 100))}%"
+																style="width: {Math.min(
+																	100,
+																	Math.max(0, row.pct_of_events * 100)
+																)}%"
 															></div>
 														</div>
 														<span class="font-mono text-base-300">
@@ -535,7 +540,9 @@
 										<Icon name="file-pdf" />
 										Download PDF
 									</a>
-									<span class="flex items-center gap-1.5 text-sm font-medium {statusTone(disc.status)}">
+									<span
+										class="flex items-center gap-1.5 text-sm font-medium {statusTone(disc.status)}"
+									>
 										<Icon name="circle" />
 										{disc.status}
 									</span>
@@ -545,7 +552,9 @@
 							<!-- Stat cards -->
 							<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
 								<div class="rounded-lg border border-base-700 bg-base-850 p-3">
-									<div class="text-[11px] tracking-wide text-base-500 uppercase">Turning points</div>
+									<div class="text-[11px] tracking-wide text-base-500 uppercase">
+										Turning points
+									</div>
 									<div class="mt-1 font-mono text-lg font-semibold text-base-50">
 										{report.n_events.toLocaleString()}
 									</div>
@@ -594,7 +603,8 @@
 										Promotable rules
 									</h3>
 									<p class="mb-3 text-xs text-base-500">
-										Validated edges distilled into concrete rules. Promote one to launch a live scan.
+										Validated edges distilled into concrete rules. Promote one to launch a live
+										scan.
 									</p>
 									<ul class="space-y-3">
 										{#each report.suggested_rules as rule (rule.name)}
@@ -611,7 +621,9 @@
 														>
 															{rule.direction}
 														</span>
-														<span class="truncate text-sm font-medium text-base-100">{rule.name}</span>
+														<span class="truncate text-sm font-medium text-base-100"
+															>{rule.name}</span
+														>
 													</div>
 													<div class="mt-1 font-mono text-xs text-base-300">
 														{conditionText(rule)}

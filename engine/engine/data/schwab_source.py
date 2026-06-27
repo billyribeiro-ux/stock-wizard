@@ -216,8 +216,8 @@ class SchwabSource(OhlcvSource, OptionSource):
 
 
 def _parse_leg(o: dict, underlying: str, right: OptionRight, as_of: datetime) -> OptionContract:
-    iv = o.get("volatility")
-    iv = float(iv) / 100.0 if iv not in (None, "NaN", -999.0) and float(iv) > 0 else None
+    raw_iv = _f(o.get("volatility"))  # 0.0 for None / "NaN" / -999.0 sentinels
+    iv = raw_iv / 100.0 if raw_iv > 0 else None
     greeks = None
     if o.get("delta") not in (None, "NaN", -999.0):
         greeks = Greeks(

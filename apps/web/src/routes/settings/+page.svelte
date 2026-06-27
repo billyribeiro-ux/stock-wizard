@@ -28,16 +28,14 @@
 		vendors: Vendor[],
 		catalog: VendorCatalogEntry[]
 	): { vendor: string; label: string; entry?: VendorCatalogEntry; keys: Vendor[] }[] {
-		const catalogByVendor = new Map(catalog.map((c) => [c.vendor, c]));
-		const groups = new Map<string, Vendor[]>();
-		for (const v of vendors) {
-			const list = groups.get(v.vendor) ?? [];
-			list.push(v);
-			groups.set(v.vendor, list);
-		}
-		return [...groups.entries()]
+		// Plain records (not reactive Maps) — this is a pure, throwaway grouping computation.
+		const catalogByVendor: Record<string, VendorCatalogEntry> = {};
+		for (const c of catalog) catalogByVendor[c.vendor] = c;
+		const groups: Record<string, Vendor[]> = {};
+		for (const v of vendors) (groups[v.vendor] ??= []).push(v);
+		return Object.entries(groups)
 			.map(([vendor, keys]) => {
-				const entry = catalogByVendor.get(vendor);
+				const entry = catalogByVendor[vendor];
 				return { vendor, label: entry?.label ?? keys[0]?.label ?? vendor, entry, keys };
 			})
 			.sort((a, b) => {
@@ -357,9 +355,7 @@
 		{#if schwabAuthUrl}
 			<div class="mt-5 space-y-4 border-t border-base-800 pt-5">
 				<div class="rounded-md border border-accent/40 bg-base-900 px-3 py-2 text-xs">
-					<p class="text-base-300">
-						1. Open the authorize link, log in, and approve access:
-					</p>
+					<p class="text-base-300">1. Open the authorize link, log in, and approve access:</p>
 					<a
 						href={schwabAuthUrl}
 						target="_blank"
@@ -388,7 +384,11 @@
 					})}
 					class="space-y-3"
 				>
-					<input type="hidden" {...exchangeSchwabCode.fields.key_id.as('text')} value={schwabKeyId} />
+					<input
+						type="hidden"
+						{...exchangeSchwabCode.fields.key_id.as('text')}
+						value={schwabKeyId}
+					/>
 					<label class="block">
 						<span class="mb-1 block text-xs font-medium text-base-300">Redirected URL</span>
 						<input

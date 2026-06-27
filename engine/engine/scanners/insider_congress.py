@@ -79,13 +79,13 @@ class InsiderCongressScanner(Scanner):
             elif t.side == Side.SHORT:
                 sell_score += w
                 sellers.add(t.insider_name)
-        for t in congress:
-            if t.side == Side.LONG:
+        for c in congress:
+            if c.side == Side.LONG:
                 buy_score += cong_w
-                buyers.add(t.representative)
-            elif t.side == Side.SHORT:
+                buyers.add(c.representative)
+            elif c.side == Side.SHORT:
                 sell_score += cong_w
-                sellers.add(t.representative)
+                sellers.add(c.representative)
 
         n_events = len(insider) + len(congress)
         net = buy_score - sell_score

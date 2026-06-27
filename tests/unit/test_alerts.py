@@ -76,9 +76,9 @@ def test_dispatch_log_channel_succeeds():
 
 def test_dispatch_webhook_without_target_fails():
     ok, err = dispatch(AlertRule(name="R", channel=AlertChannel.WEBHOOK), _signal(), "m")
-    assert not ok and "webhook" in err
+    assert not ok and "webhook" in (err or "")
 
 
 def test_dispatch_email_stub():
     ok, err = dispatch(AlertRule(name="R", channel=AlertChannel.EMAIL), _signal(), "m")
-    assert not ok and "email" in err
+    assert not ok and "email" in (err or "")

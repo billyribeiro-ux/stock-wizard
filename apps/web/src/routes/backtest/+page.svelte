@@ -1,7 +1,12 @@
 <script lang="ts">
 	import Icon from '$lib/components/Icon.svelte';
 	import EquityCurveChart from '$lib/components/EquityCurveChart.svelte';
-	import { createBacktest, getBacktest, listBacktests, listBacktestableScanners } from './data.remote';
+	import {
+		createBacktest,
+		getBacktest,
+		listBacktests,
+		listBacktestableScanners
+	} from './data.remote';
 	import type { Backtest, BacktestMetrics, Scanner, TradeRecord } from '$lib/types';
 
 	const TIMEFRAMES = ['5m', '15m', '1h', '4h', '1d', '1w'] as const;
@@ -80,19 +85,22 @@
 		activeId = id;
 	}
 
-	const metricCards: { key: keyof BacktestMetrics; label: string; kind: 'pct' | 'num' | 'ratio' }[] =
-		[
-			{ key: 'win_rate', label: 'Win Rate', kind: 'pct' },
-			{ key: 'profit_factor', label: 'Profit Factor', kind: 'ratio' },
-			{ key: 'expectancy', label: 'Expectancy', kind: 'num' },
-			{ key: 'total_pnl', label: 'Total P&L', kind: 'num' },
-			{ key: 'sharpe', label: 'Sharpe', kind: 'ratio' },
-			{ key: 'sortino', label: 'Sortino', kind: 'ratio' },
-			{ key: 'max_drawdown', label: 'Max Drawdown', kind: 'pct' },
-			{ key: 'cagr', label: 'CAGR', kind: 'pct' },
-			{ key: 'total_trades', label: 'Total Trades', kind: 'num' },
-			{ key: 'exposure', label: 'Exposure', kind: 'pct' }
-		];
+	const metricCards: {
+		key: keyof BacktestMetrics;
+		label: string;
+		kind: 'pct' | 'num' | 'ratio';
+	}[] = [
+		{ key: 'win_rate', label: 'Win Rate', kind: 'pct' },
+		{ key: 'profit_factor', label: 'Profit Factor', kind: 'ratio' },
+		{ key: 'expectancy', label: 'Expectancy', kind: 'num' },
+		{ key: 'total_pnl', label: 'Total P&L', kind: 'num' },
+		{ key: 'sharpe', label: 'Sharpe', kind: 'ratio' },
+		{ key: 'sortino', label: 'Sortino', kind: 'ratio' },
+		{ key: 'max_drawdown', label: 'Max Drawdown', kind: 'pct' },
+		{ key: 'cagr', label: 'CAGR', kind: 'pct' },
+		{ key: 'total_trades', label: 'Total Trades', kind: 'num' },
+		{ key: 'exposure', label: 'Exposure', kind: 'pct' }
+	];
 
 	function fmtMetric(value: number | undefined, kind: 'pct' | 'num' | 'ratio'): string {
 		if (value === undefined || value === null || Number.isNaN(value)) return '—';
@@ -332,7 +340,9 @@
 												<span class="truncate">{item.universe.join(', ')}</span>
 											</div>
 											{#if item.metrics}
-												<div class="mt-1 flex items-center gap-3 font-mono text-[11px] text-base-400">
+												<div
+													class="mt-1 flex items-center gap-3 font-mono text-[11px] text-base-400"
+												>
 													<span>WR {fmtMetric(item.metrics.win_rate, 'pct')}</span>
 													<span>PF {fmtMetric(item.metrics.profit_factor, 'ratio')}</span>
 													<span>n {item.metrics.total_trades}</span>
@@ -407,7 +417,9 @@
 								<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
 									{#each metricCards as card (card.key)}
 										<div class="rounded-lg border border-base-700 bg-base-850 p-3">
-											<div class="text-[11px] tracking-wide text-base-500 uppercase">{card.label}</div>
+											<div class="text-[11px] tracking-wide text-base-500 uppercase">
+												{card.label}
+											</div>
 											<div class="mt-1 font-mono text-lg font-semibold text-base-50">
 												{fmtMetric(metrics[card.key] as number, card.kind)}
 											</div>

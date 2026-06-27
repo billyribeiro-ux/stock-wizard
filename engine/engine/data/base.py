@@ -55,6 +55,8 @@ class VendorInfo:
 
 @runtime_checkable
 class OhlcvSource(Protocol):
+    name: str
+
     def get_ohlcv(
         self, symbol: str, timeframe: Timeframe, start: datetime, end: datetime | None = None
     ) -> OHLCV: ...
@@ -62,11 +64,15 @@ class OhlcvSource(Protocol):
 
 @runtime_checkable
 class OptionSource(Protocol):
+    name: str
+
     def get_option_chain(self, underlying: str, expiry: date | None = None) -> OptionChain: ...
 
 
 @runtime_checkable
 class InsiderSource(Protocol):
+    name: str
+
     def get_insider_transactions(
         self, symbol: str, since: date | None = None
     ) -> list[InsiderTransaction]: ...
@@ -74,6 +80,8 @@ class InsiderSource(Protocol):
 
 @runtime_checkable
 class CongressSource(Protocol):
+    name: str
+
     def get_congress_trades(
         self, symbol: str, since: date | None = None
     ) -> list[CongressTrade]: ...
@@ -81,11 +89,15 @@ class CongressSource(Protocol):
 
 @runtime_checkable
 class EarningsSource(Protocol):
+    name: str
+
     def get_earnings(self, symbol: str, since: date | None = None) -> list[EarningsEvent]: ...
 
 
 @runtime_checkable
 class NewsSource(Protocol):
+    name: str
+
     def get_news(self, symbol: str, since: date | None = None) -> list[NewsItem]: ...
 
 

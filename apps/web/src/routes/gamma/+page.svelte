@@ -169,7 +169,11 @@
 						>
 							{result.classification}
 						</span>
-						<span class="flex items-center gap-1.5 text-sm font-medium {directionTone(result.direction)}">
+						<span
+							class="flex items-center gap-1.5 text-sm font-medium {directionTone(
+								result.direction
+							)}"
+						>
 							<Icon name="arrows-out-cardinal" />
 							{result.direction ?? 'NEUTRAL'}
 						</span>
