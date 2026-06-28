@@ -299,15 +299,28 @@
 						{:else}
 							<ul class="space-y-1.5">
 								{#each items as ew (ew.scanner_id)}
-									<li class="flex items-center justify-between gap-2 text-xs">
-										<span class="truncate text-base-200" title={ew.scanner_id}>{ew.scanner_id}</span
-										>
-										<span class="flex items-center gap-2">
-											<span class="text-[10px] text-base-500">{ew.promotion ?? '—'}</span>
-											<span class="font-mono font-semibold {edgeTone(ew.edge_weight)}">
-												×{(ew.edge_weight ?? 1).toFixed(2)}
+									<li class="text-xs">
+										<div class="flex items-center justify-between gap-2">
+											<span class="truncate text-base-200" title={ew.scanner_id}
+												>{ew.scanner_id}</span
+											>
+											<span class="flex items-center gap-2">
+												<span class="text-[10px] text-base-500">{ew.promotion ?? '—'}</span>
+												<span class="font-mono font-semibold {edgeTone(ew.edge_weight)}">
+													×{(ew.edge_weight ?? 1).toFixed(2)}
+												</span>
 											</span>
-										</span>
+										</div>
+										{#if ew.regime_edges && Object.keys(ew.regime_edges).length}
+											<div class="mt-0.5 flex gap-2 pl-2 text-[10px] text-base-500">
+												{#each Object.entries(ew.regime_edges) as [regime, w] (regime)}
+													<span>
+														{regime}
+														<span class="font-mono {edgeTone(w)}">×{w.toFixed(2)}</span>
+													</span>
+												{/each}
+											</div>
+										{/if}
 									</li>
 								{/each}
 							</ul>

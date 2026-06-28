@@ -541,6 +541,7 @@ async def list_edge_weights(session: AsyncSession) -> list[dict]:
                 "promotion": m.get("promotion"),
                 "edge_weight": m.get("edge_weight"),
                 "oos_profit_factor": m.get("oos_profit_factor"),
+                "regime_edges": m.get("regime_edges", {}),
                 "detail": m.get("detail", {}),
                 "validated_at": row.created_at.isoformat() if row.created_at else None,
             }

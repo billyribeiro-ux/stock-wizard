@@ -195,6 +195,7 @@ export interface EdgeWeight {
 	promotion: string | null;
 	edge_weight: number | null;
 	oos_profit_factor: number | null;
+	regime_edges: Record<string, number>;
 	detail: Record<string, unknown>;
 	validated_at: string | null;
 }
