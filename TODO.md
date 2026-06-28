@@ -71,8 +71,9 @@ what's in flight and what's next.
 - [x] Live regime-conditional ensemble scan endpoint (`POST /scans/ensemble`) +
       `ensemble_service`, web client wired, e2e integration-tested on the real stack.
 - [x] Surface `regime_edges` (trend/range split) in the ML Lab edge-weights panel.
-- [ ] Dedicated ensemble builder UI page (pick scanners + symbols, run, view consensus
-      signals) — backend + web client are ready; just needs the page.
+- [x] Dedicated ensemble builder UI page (`/ensemble`) — multi-select scanners (with their
+      global + per-regime edge badges), pick symbols/timeframe/history, run, navigate to
+      results. Linked in the nav.
 
 ## Known limitations / environment
 - yfinance is unreachable in the sandbox (curl_cffi TLS vs the agent proxy); FMP and other

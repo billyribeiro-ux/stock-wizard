@@ -9,6 +9,7 @@
 	const nav = [
 		{ href: '/', label: 'Command Center', icon: 'gauge' },
 		{ href: '/scanners', label: 'Scanners', icon: 'scan' },
+		{ href: '/ensemble', label: 'Ensemble', icon: 'graph' },
 		{ href: '/results', label: 'Results', icon: 'table' },
 		{ href: '/backtest', label: 'Backtest Lab', icon: 'flask' },
 		{ href: '/discovery', label: 'Discovery Lab', icon: 'detective' },

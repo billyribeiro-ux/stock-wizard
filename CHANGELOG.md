@@ -7,6 +7,9 @@ the project is pre-1.0 and versions track development waves rather than semver r
 ## [Unreleased]
 
 ### Added
+- **Ensemble builder UI** (`/ensemble`) — multi-select scanners (each showing its global +
+  per-regime edge badges), pick symbols/timeframe/history, dispatch a regime-conditional
+  ensemble scan and land on the results. Added to the nav.
 - **Live regime-conditional ensemble scan** (`POST /scans/ensemble` + `ensemble_service`) —
   the production form of the validated 2x strategy: per symbol it runs the chosen scanners on
   one snapshot, weights each by its *current-regime* OOS edge (persisted `regime_edges`),
