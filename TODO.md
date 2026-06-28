@@ -29,10 +29,14 @@ what's in flight and what's next.
       regimes (`scanners/regime_affinity.py`, snapshot `regime.er`).
 - [x] Surface per-scanner edge weight on signals (`SignalPacket.edge_weight`, from the
       calibrated win-rate lift via `scan_service`).
-- [ ] Persist *walk-forward OOS* edge weights (not just calibrator-derived) per scanner and
-      feed them into `scan_service` / the ensemble at runtime.
-- [ ] Surface the regime-gate badge + edge weight in the results/signal UI.
-- [ ] Wire the FMP key into a Settings entry end-to-end and confirm a live scan uses it.
+- [x] Persist *walk-forward OOS* edge weights per scanner (`model_registry`) and prefer them
+      in `scan_service` over the calibrator-derived weight.
+- [x] Surface the regime-gate badge + edge-weight chip in the signal UI (`SignalCard`).
+- [x] Run backtests on the FMP-preferred data resolver (not hard-coded yfinance).
+- [ ] Wire the FMP key into a Settings entry end-to-end and confirm a live scan uses it
+      (needs a running DB; validated offline so far).
+- [ ] Batch-validate the whole scanner roster (multi-symbol forward tests) and store a
+      blended OOS edge weight per scanner, rather than last-write-wins per backtest.
 - [ ] Commit a real-data backtest-regression fixture under `tests/backtest_regression/`.
 - [ ] Live-validate the Schwab OAuth round-trip once app credentials are configured
       (currently verified offline only).

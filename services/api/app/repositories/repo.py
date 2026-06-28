@@ -439,6 +439,54 @@ async def get_latest_calibrator(session: AsyncSession, scanner_id: str) -> dict 
     return cal if isinstance(cal, dict) and cal.get("fitted") else None
 
 
+async def save_walkforward_edge(
+    session: AsyncSession,
+    scanner_id: str,
+    promotion: str,
+    oos_profit_factor: float,
+    edge_weight: float,
+    detail: dict | None = None,
+) -> ModelRegistry:
+    """Persist a scanner's walk-forward out-of-sample verdict + derived edge weight.
+
+    Stored in ``model_registry`` under ``walkforward:{scanner_id}`` (mirrors the calibrator
+    convention), newest row wins. ``edge_weight`` is the validated multiplier the live signal
+    path applies to that scanner's conviction."""
+    from uuid import uuid4
+
+    row = ModelRegistry(
+        model_id=uuid4(),
+        name=f"walkforward:{scanner_id}",
+        version="wf-1",
+        status="validated",
+        metrics={
+            "promotion": promotion,
+            "oos_profit_factor": float(oos_profit_factor),
+            "edge_weight": float(edge_weight),
+            "detail": detail or {},
+        },
+    )
+    session.add(row)
+    await session.commit()
+    await session.refresh(row)
+    return row
+
+
+async def get_latest_edge_weight(session: AsyncSession, scanner_id: str) -> float | None:
+    """Newest walk-forward OOS edge weight for a scanner (None if never validated)."""
+    stmt = (
+        select(ModelRegistry)
+        .where(ModelRegistry.name == f"walkforward:{scanner_id}")
+        .order_by(ModelRegistry.created_at.desc())
+        .limit(1)
+    )
+    row = (await session.execute(stmt)).scalars().first()
+    if row is None:
+        return None
+    ew = (row.metrics or {}).get("edge_weight")
+    return float(ew) if isinstance(ew, int | float) else None
+
+
 # ---- alert rules / events ----
 async def add_alert_rule(session: AsyncSession, rule_id, name, enabled, channel, config) -> None:
     session.add(

@@ -95,11 +95,15 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
         )
         factory = FeatureFactory()
         calibrator = await repo.get_latest_calibrator(session, run.scanner_id)
-        # Validated edge multiplier for this scanner (calibrated win-rate lift); surfaced on
-        # every signal so the ensemble/UI can weight proven scanners more heavily.
-        from engine.evidence import edge_weight_from_calibrator
+        # Validated edge multiplier for this scanner, surfaced on every signal so the
+        # ensemble/UI can weight proven scanners more heavily. Prefer the walk-forward
+        # out-of-sample weight (proper time-separated validation) when one exists; otherwise
+        # fall back to the calibrated win-rate lift.
+        edge_weight = await repo.get_latest_edge_weight(session, run.scanner_id)
+        if edge_weight is None:
+            from engine.evidence import edge_weight_from_calibrator
 
-        edge_weight = edge_weight_from_calibrator(calibrator)
+            edge_weight = edge_weight_from_calibrator(calibrator)
 
         aux: dict = {}
         peers: list[str] = []

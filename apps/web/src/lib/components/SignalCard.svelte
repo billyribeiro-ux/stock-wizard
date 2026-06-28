@@ -25,6 +25,19 @@
 		return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
 	}
 
+	// Edge weight: show a chip only when it meaningfully departs from neutral (1.0).
+	const edge = $derived.by(() => {
+		const w = signal.edge_weight;
+		if (w === undefined || Math.abs(w - 1) < 0.05) return null;
+		return {
+			label: `×${w.toFixed(2)}`,
+			tone: w >= 1 ? 'text-long bg-long-soft' : 'text-short bg-short-soft',
+			title: w >= 1 ? 'Validated edge — proven scanner' : 'Under-performing scanner (damped)'
+		};
+	});
+
+	const gated = $derived(signal.regime_aligned === false);
+
 	function time(iso: string): string {
 		const date = new Date(iso);
 		return Number.isNaN(date.getTime()) ? iso : date.toLocaleTimeString();
@@ -44,6 +57,15 @@
 			</span>
 			<span class="font-mono text-sm font-semibold text-base-100">{signal.symbol}</span>
 			<span class="text-xs text-base-400">{signal.timeframe}</span>
+			{#if gated}
+				<span
+					class="flex items-center gap-1 rounded border border-warn/40 bg-base-800 px-1.5 py-0.5 text-[10px] font-medium text-warn"
+					title="Regime-gated: this scanner has no validated edge in the current regime — trade plan suppressed"
+				>
+					<Icon name="warning" />
+					gated
+				</span>
+			{/if}
 		</div>
 		<span class="text-xs text-base-500">{time(signal.created_at)}</span>
 	</header>
@@ -75,6 +97,11 @@
 			{signal.source_scanner}
 		</span>
 		<span class="flex items-center gap-2">
+			{#if edge}
+				<span class="rounded px-1.5 py-0.5 font-mono {edge.tone}" title={edge.title}>
+					{edge.label}
+				</span>
+			{/if}
 			<span class="rounded bg-base-800 px-1.5 py-0.5 text-base-300">{signal.regime}</span>
 			<span class="font-mono text-accent">{(signal.score * 100).toFixed(0)}</span>
 		</span>

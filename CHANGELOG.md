@@ -7,6 +7,14 @@ the project is pre-1.0 and versions track development waves rather than semver r
 ## [Unreleased]
 
 ### Added
+- **Persisted walk-forward edge weights, applied live.** A forward-test backtest now persists
+  the out-of-sample verdict + derived edge weight per scanner
+  (`repo.save_walkforward_edge` → `model_registry` as `walkforward:{scanner_id}`), and
+  `scan_service` prefers that *time-separated* OOS weight over the calibrator-derived one when
+  present. Backtests now run on the FMP-preferred data resolver (same as the live scan path).
+- **Regime/edge surfaced in the dashboard.** `SignalCard` shows a "gated" badge when a signal
+  was regime-suppressed and an edge-weight chip (×N, green/red) when a scanner's validated
+  edge departs from neutral.
 - **Live regime-gating + edge weighting in the signal path.** `build_signal` now demotes a
   triggered signal when its source scanner has no validated edge in the current regime
   (`scanners/regime_affinity.py`, derived from the regime-segmented backtests — e.g.

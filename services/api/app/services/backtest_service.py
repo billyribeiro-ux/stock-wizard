@@ -13,11 +13,12 @@ from engine.backtesting import (
     forward_test,
     walk_forward,
 )
-from engine.data import build_ohlcv_source, validate
+from engine.data import validate
+from engine.evidence import edge_weight_from_walkforward
 from engine.schemas import Timeframe
 
 from ..repositories import repo
-from .scan_service import _HISTORY_DAYS, _HTF
+from .scan_service import _HISTORY_DAYS, _HTF, _resolve_ohlcv_source
 
 
 async def execute_backtest(session, backtest_id: UUID) -> dict:
@@ -30,7 +31,9 @@ async def execute_backtest(session, backtest_id: UUID) -> dict:
         timeframe = Timeframe(bt.timeframe)
         days = _HISTORY_DAYS.get(str(bt.params.get("history", "1y")), 366)
         start = datetime.now(UTC) - timedelta(days=days)
-        src = build_ohlcv_source("yfinance")
+        # Prefer FMP (or a forced vendor) for history, falling back to yfinance — same
+        # resolution the live scan path uses, so backtests run on the production feed.
+        src = await _resolve_ohlcv_source(session, bt.params.get("data_vendor"))
         symbol = bt.universe[0] if bt.universe else "SPY"
 
         ohlcv = src.get_ohlcv(symbol, timeframe, start)
@@ -60,6 +63,18 @@ async def execute_backtest(session, backtest_id: UUID) -> dict:
             for t in ft.out_of_sample.trades:
                 t.symbol = symbol
             wf = walk_forward(bt.scanner_id, ohlcv, params=bt.params, htf_ohlcv=htf)
+            # Persist the out-of-sample edge weight so the live signal path weights this
+            # scanner by its *time-separated* validation, not just its calibrator.
+            oos_pf = float(ft.forward.get("profit_factor", 1.0))
+            edge_weight = edge_weight_from_walkforward(ft.promotion, oos_pf)
+            await repo.save_walkforward_edge(
+                session,
+                bt.scanner_id,
+                promotion=ft.promotion,
+                oos_profit_factor=oos_pf,
+                edge_weight=edge_weight,
+                detail={"symbol": symbol, "drift": ft.drift},
+            )
             payload = {
                 "mode": "forward",
                 "baseline": ft.baseline,
@@ -68,6 +83,7 @@ async def execute_backtest(session, backtest_id: UUID) -> dict:
                 "monte_carlo": ft.monte_carlo,
                 "promotion": ft.promotion,
                 "rationale": ft.rationale,
+                "edge_weight": edge_weight,
                 "walk_forward": wf,
                 **ft.out_of_sample.model_dump(mode="json"),
             }
