@@ -15,6 +15,7 @@ from ..jobs import enqueue_scan
 from ..pubsub import get_redis
 from ..repositories import repo
 from ..security import require_token
+from ..services.ensemble_service import execute_ensemble_scan
 from ..services.scan_service import execute_scan
 
 router = APIRouter(tags=["scans"], dependencies=[Depends(require_token)])
@@ -53,6 +54,43 @@ async def create_scan(
     if not enqueued:
         background.add_task(_run_inline, run_id)
     return {"run_id": str(run_id), "enqueued": enqueued}
+
+
+class EnsembleScanRequest(BaseModel):
+    scanners: list[str] = Field(min_length=2)
+    symbols: list[str] = Field(min_length=1)
+    timeframe: str = "1d"
+    history: str = "1y"
+    params: dict = Field(default_factory=dict)
+
+
+async def _run_ensemble_inline(run_id: UUID) -> None:
+    redis = get_redis()
+    async with SessionLocal() as session:
+        try:
+            await execute_ensemble_scan(session, run_id, redis=redis)
+        finally:
+            await redis.aclose()
+
+
+@router.post("/scans/ensemble", status_code=202)
+async def create_ensemble_scan(
+    req: EnsembleScanRequest,
+    background: BackgroundTasks,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """Run a regime-conditional ensemble: each scanner votes weighted by its current-regime
+    OOS edge, fused into one consensus signal per symbol (the validated 2x strategy)."""
+    unknown = [s for s in req.scanners if s not in list_scanner_ids()]
+    if unknown:
+        raise HTTPException(404, f"unknown scanner_id(s): {unknown}")
+    run_id = uuid4()
+    params = {**req.params, "history": req.history, "scanners": req.scanners}
+    await repo.create_run(
+        session, run_id, "ensemble", req.timeframe, [s.upper() for s in req.symbols], params
+    )
+    background.add_task(_run_ensemble_inline, run_id)
+    return {"run_id": str(run_id), "scanners": req.scanners}
 
 
 @router.get("/scans/{run_id}")

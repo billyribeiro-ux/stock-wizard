@@ -68,9 +68,11 @@ what's in flight and what's next.
 - [x] Regime-conditional ensemble — momentum + range mean-reversion fused via per-regime
       weights MORE THAN DOUBLES the best single scanner's held-out profit (+7424 vs +3541).
       `backtest_ensemble(regime_edges_map=...)`. See `docs/BACKTESTS.md`.
-- [ ] Wire a live regime-conditional ensemble scan endpoint (multi-scanner consensus that
-      applies per-regime weights), so the dashboard can run the fused strategy directly.
-- [ ] Surface `regime_edges` (trend/range split) in the ML Lab edge-weights panel.
+- [x] Live regime-conditional ensemble scan endpoint (`POST /scans/ensemble`) +
+      `ensemble_service`, web client wired, e2e integration-tested on the real stack.
+- [x] Surface `regime_edges` (trend/range split) in the ML Lab edge-weights panel.
+- [ ] Dedicated ensemble builder UI page (pick scanners + symbols, run, view consensus
+      signals) — backend + web client are ready; just needs the page.
 
 ## Known limitations / environment
 - yfinance is unreachable in the sandbox (curl_cffi TLS vs the agent proxy); FMP and other

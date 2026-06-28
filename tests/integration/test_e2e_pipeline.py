@@ -156,6 +156,41 @@ async def test_full_pipeline(client):
     assert vp[0]["edge_weight"] is not None
 
 
+async def test_ensemble_scan_end_to_end(client):
+    from app.db import SessionLocal
+    from app.services.ensemble_service import execute_ensemble_scan
+
+    # needs an enabled FMP key so the (stubbed) feed is selected
+    await client.post(
+        "/vendors/keys",
+        headers=AUTH,
+        json={"vendor": "fmp", "label": "ens", "api_key": "fmp_secret_ZZZ9999", "scopes": []},
+    )
+    r = await client.post(
+        "/scans/ensemble",
+        headers=AUTH,
+        json={
+            "scanners": ["breakout_quality", "volume_profile_poc"],
+            "symbols": ["SPY"],
+            "timeframe": "1d",
+            "history": "2y",
+        },
+    )
+    assert r.status_code == 202
+    run_id = r.json()["run_id"]
+
+    async with SessionLocal() as session:
+        triggered = await execute_ensemble_scan(session, run_id)
+    assert triggered >= 0  # ran cleanly
+
+    scan = (await client.get(f"/scans/{run_id}", headers=AUTH)).json()
+    assert scan["status"] == "done"
+    # any signal this run produced must be labelled as an ensemble consensus
+    signals = (await client.get(f"/signals?run_id={run_id}", headers=AUTH)).json()["items"]
+    for s in signals:
+        assert s["source_scanner"].startswith("ensemble:")
+
+
 async def test_auth_required(client):
     assert (await client.get("/vendors")).status_code == 401
     assert (

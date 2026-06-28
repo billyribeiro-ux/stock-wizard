@@ -147,6 +147,24 @@ export function startScan(payload: StartScanPayload): Promise<{ run_id: string }
 	return request<{ run_id: string }>('/scans', { method: 'POST', body: payload });
 }
 
+export interface EnsembleScanPayload {
+	scanners: string[];
+	symbols: string[];
+	timeframe?: string;
+	history?: string;
+}
+
+/** Run a regime-conditional ensemble scan (each scanner weighted by its current-regime
+ * OOS edge, fused into one consensus signal per symbol). */
+export function startEnsembleScan(
+	payload: EnsembleScanPayload
+): Promise<{ run_id: string; scanners: string[] }> {
+	return request<{ run_id: string; scanners: string[] }>('/scans/ensemble', {
+		method: 'POST',
+		body: payload
+	});
+}
+
 export function getScan(runId: string): Promise<ScanRun> {
 	return request<ScanRun>(`/scans/${encodeURIComponent(runId)}`);
 }

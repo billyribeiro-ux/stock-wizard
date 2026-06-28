@@ -7,6 +7,13 @@ the project is pre-1.0 and versions track development waves rather than semver r
 ## [Unreleased]
 
 ### Added
+- **Live regime-conditional ensemble scan** (`POST /scans/ensemble` + `ensemble_service`) —
+  the production form of the validated 2x strategy: per symbol it runs the chosen scanners on
+  one snapshot, weights each by its *current-regime* OOS edge (persisted `regime_edges`),
+  drops those with no proven edge in that regime, fuses the survivors via the edge-weighted
+  consensus, and emits one ensemble `SignalPacket` (each contributor's result still saved for
+  audit). Wired through the web client (`startEnsembleScan`/`runEnsembleScan`); covered by an
+  end-to-end integration test on the real Postgres/Redis stack.
 - **Regime-conditional edge weights (the key evidence win).** Reading each scanner's OOS
   performance *per regime* shows scanners that are globally net-flat but profitable in one
   regime — e.g. `volume_profile_poc` is real mean-reversion edge in *range* (OOS PF 1.19,

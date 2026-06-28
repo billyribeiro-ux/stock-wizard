@@ -26,3 +26,25 @@ const RunScanSchema = v.object({
 export const runScan = command(RunScanSchema, async (input): Promise<{ run_id: string }> => {
 	return api.startScan(input);
 });
+
+const RunEnsembleSchema = v.object({
+	scanners: v.pipe(
+		v.array(v.pipe(v.string(), v.nonEmpty())),
+		v.minLength(2, 'Pick at least two scanners to fuse')
+	),
+	symbols: v.pipe(
+		v.array(v.pipe(v.string(), v.nonEmpty())),
+		v.minLength(1, 'Provide at least one symbol')
+	),
+	timeframe: v.optional(v.string(), '1d'),
+	history: v.optional(v.string(), '1y')
+});
+
+/** Run a regime-conditional ensemble scan — fuses scanners weighted by their current-regime
+ * out-of-sample edge into one consensus signal per symbol. */
+export const runEnsembleScan = command(
+	RunEnsembleSchema,
+	async (input): Promise<{ run_id: string; scanners: string[] }> => {
+		return api.startEnsembleScan(input);
+	}
+);
