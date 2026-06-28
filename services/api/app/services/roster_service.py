@@ -31,6 +31,11 @@ from .scan_service import (
     _start_for,
 )
 
+# Scanners that re-fit a model on every bar — far too slow for a per-bar replay sweep
+# (e.g. anomaly_detection fits an estimator each step: minutes per symbol). Their value is
+# the live ML, not a cheap backtest, so they're excluded from the roster validation.
+_SLOW_FOR_REPLAY: set[str] = {"anomaly_detection"}
+
 # Scanners whose inputs the OHLCV replay can't reconstruct -> not roster-validatable here.
 _NOT_BACKTESTABLE: set[str] = (
     _NEEDS_OPTIONS
@@ -41,6 +46,7 @@ _NOT_BACKTESTABLE: set[str] = (
     | _NEEDS_UNIVERSE
     | _NEEDS_VOL_TERM
     | _NEEDS_RISK_RATIOS
+    | _SLOW_FOR_REPLAY
 )
 
 DEFAULT_BASKET = ["SPY", "QQQ", "AAPL", "NVDA", "TSLA", "AMZN", "META", "JPM"]
