@@ -62,8 +62,12 @@ what's in flight and what's next.
       edge-weighted consensus, drops retired ones. OOS finding: wins on absolute PnL but not
       risk-adjusted vs the single best scanner (two correlated momentum edges); kept as a
       generalizing capability for when more *independent* edges are validated.
-- [ ] Validate genuinely *independent* edge families (mean-reversion in range regimes,
-      breadth/internals, options-flow) so the ensemble has uncorrelated signals to fuse.
+- [x] Per-(scanner, regime) edge weights — validate & gate each scanner in the regime where
+      it's OOS-proven (`regime_edges`). Resurrected `volume_profile_poc` as a range-only
+      mean-reversion edge; `build_signal` applies the current-regime weight live.
+- [ ] Re-run the ensemble with the regime-conditional weights (momentum in trend + range
+      mean-reversion) and confirm the now-*independent* edges lift risk-adjusted returns.
+- [ ] Surface `regime_edges` in the ML Lab edge-weights panel (trend/range split).
 
 ## Known limitations / environment
 - yfinance is unreachable in the sandbox (curl_cffi TLS vs the agent proxy); FMP and other

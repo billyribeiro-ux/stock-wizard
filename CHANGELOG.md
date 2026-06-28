@@ -7,6 +7,14 @@ the project is pre-1.0 and versions track development waves rather than semver r
 ## [Unreleased]
 
 ### Added
+- **Regime-conditional edge weights (the key evidence win).** Reading each scanner's OOS
+  performance *per regime* shows scanners that are globally net-flat but profitable in one
+  regime — e.g. `volume_profile_poc` is real mean-reversion edge in *range* (OOS PF 1.19,
+  +3369) yet a loser in trend, so the global gate wrongly retired it. `blend_forward_tests`
+  now derives per-regime weights (`regime_edges`, persisted via `save_walkforward_edge`), and
+  `build_signal` applies the weight for the *current* regime — so a scanner trades only where
+  it's OOS-proven and is gated where it isn't. Resurrects range mean-reversion as an
+  independent edge for the ensemble. See `docs/BACKTESTS.md`.
 - **Multi-scanner ensemble backtest** (`backtest_ensemble`) — fuses scanners on each bar via
   the edge-weighted consensus, dropping OOS-retired ones before voting. OOS study: it wins on
   absolute PnL but not risk-adjusted vs the single best scanner (the two proven edges are

@@ -45,6 +45,7 @@ def build_signal(
     account_risk: float | None = None,
     calibrator: dict | None = None,
     edge_weight: float = 1.0,
+    regime_edges: dict[str, float] | None = None,
 ) -> SignalPacket:
     is_no_trade = (not result.triggered) or result.classification in _NO_TRADE
     side = result.direction or Side.NEUTRAL
@@ -52,12 +53,19 @@ def build_signal(
     # Regime gate: demote a triggered signal whose source scanner has no validated edge in
     # the current regime (e.g. a trend-only structure scanner firing in a range). The signal
     # is still recorded for audit, but no trade plan is emitted and it's flagged.
-    from ..scanners.regime_affinity import is_regime_aligned
+    from ..scanners.regime_affinity import is_regime_aligned, regime_kind_from_er
 
     er = (result.feature_refs or {}).get("regime.er")
     if er is None and snapshot is not None:
         er = snapshot.get("regime.er")
     regime_aligned = is_regime_aligned(result.scanner_id, er)
+
+    # Regime-conditional edge: when per-regime weights exist, use the weight for the *current*
+    # regime. This lets a globally net-flat scanner (e.g. range mean-reversion) trade where it
+    # has proven OOS edge and be gated where it doesn't.
+    kind = regime_kind_from_er(er)
+    if regime_edges and kind in regime_edges:
+        edge_weight = regime_edges[kind]
     # Edge gate: an OOS-retired scanner (validated profit factor < 1) doesn't trade live.
     edge_retired = edge_weight < _EDGE_FLOOR
     gated = result.triggered and not is_no_trade and (not regime_aligned or edge_retired)

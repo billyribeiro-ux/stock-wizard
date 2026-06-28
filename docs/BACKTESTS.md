@@ -197,6 +197,30 @@ roster grows) rather than presented as a strict improvement over concentrating o
 best edge. As more *independent* edges get validated, the consensus should improve risk-
 adjusted returns; with two correlated momentum scanners today, it doesn't.
 
+## Regime-conditional edges (the key finding)
+
+Reading each scanner's OOS performance **within each regime** (not just globally) changes the
+picture entirely. A scanner can be net-flat overall yet have a real edge in one regime:
+
+| Scanner | range OOS (trades / PF / PnL) | trend OOS (trades / PF / PnL) |
+|---|---|---|
+| **volume_profile_poc** | 315 / **1.19** / **+3369** | 171 / 0.95 / −2729 |
+| key_levels | 351 / 1.11 / +2547 | 166 / 0.63 / −4304 |
+| breakout_quality | 66 / 1.58 / +1377 | 83 / 1.54 / +2164 |
+| mtf_structure | 70 / 0.95 / −431 | 90 / **1.13** / +257 |
+| failed_move / liquidity_sweep | ~0.97 / ≈0 | <0.8 / negative |
+
+`volume_profile_poc` is **profitable mean-reversion in range** but a loser in trend — globally
+it retires (the regimes cancel), so the blunt global edge gate wrongly kills it. The fix:
+
+**Per-(scanner, regime) edge weights.** `blend_forward_tests` now pools the OOS regime
+breakdown into `regime_edges` (e.g. `volume_profile_poc → {range: 1.0, trend: 0.3}`,
+`breakout_quality → {trend: 1.70, range: 1.52}`), which are persisted and used live:
+`build_signal` looks up the weight for the **current** regime, so a scanner trades only where
+it's been proven and is gated where it hasn't. This resurrects range mean-reversion as a
+genuinely *independent* edge (uncorrelated with the momentum edge) — exactly what the ensemble
+needs to improve risk-adjusted returns as the validated roster grows.
+
 ## Reproduce
 
 The harness lives in the scratchpad (not committed; it's a throwaway). Set `FMP_KEY` and

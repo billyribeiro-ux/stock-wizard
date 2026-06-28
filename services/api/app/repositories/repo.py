@@ -464,12 +464,14 @@ async def save_walkforward_edge(
     oos_profit_factor: float,
     edge_weight: float,
     detail: dict | None = None,
+    regime_edges: dict | None = None,
 ) -> ModelRegistry:
     """Persist a scanner's walk-forward out-of-sample verdict + derived edge weight.
 
     Stored in ``model_registry`` under ``walkforward:{scanner_id}`` (mirrors the calibrator
-    convention), newest row wins. ``edge_weight`` is the validated multiplier the live signal
-    path applies to that scanner's conviction."""
+    convention), newest row wins. ``edge_weight`` is the global validated multiplier;
+    ``regime_edges`` maps trend/range -> a regime-specific multiplier so a scanner with a
+    regime-conditional edge can still trade where it's proven."""
     from uuid import uuid4
 
     row = ModelRegistry(
@@ -482,6 +484,7 @@ async def save_walkforward_edge(
                 "promotion": promotion,
                 "oos_profit_factor": float(oos_profit_factor),
                 "edge_weight": float(edge_weight),
+                "regime_edges": regime_edges or {},
                 "detail": detail or {},
             }
         ),
@@ -492,8 +495,8 @@ async def save_walkforward_edge(
     return row
 
 
-async def get_latest_edge_weight(session: AsyncSession, scanner_id: str) -> float | None:
-    """Newest walk-forward OOS edge weight for a scanner (None if never validated)."""
+async def get_latest_edge_record(session: AsyncSession, scanner_id: str) -> dict | None:
+    """Newest walk-forward edge record for a scanner: {edge_weight, regime_edges}."""
     stmt = (
         select(ModelRegistry)
         .where(ModelRegistry.name == f"walkforward:{scanner_id}")
@@ -503,8 +506,17 @@ async def get_latest_edge_weight(session: AsyncSession, scanner_id: str) -> floa
     row = (await session.execute(stmt)).scalars().first()
     if row is None:
         return None
-    ew = (row.metrics or {}).get("edge_weight")
-    return float(ew) if isinstance(ew, int | float) else None
+    m = row.metrics or {}
+    ew = m.get("edge_weight")
+    if not isinstance(ew, int | float):
+        return None
+    return {"edge_weight": float(ew), "regime_edges": m.get("regime_edges") or {}}
+
+
+async def get_latest_edge_weight(session: AsyncSession, scanner_id: str) -> float | None:
+    """Newest global walk-forward OOS edge weight for a scanner (None if never validated)."""
+    rec = await get_latest_edge_record(session, scanner_id)
+    return rec["edge_weight"] if rec else None
 
 
 async def list_edge_weights(session: AsyncSession) -> list[dict]:

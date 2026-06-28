@@ -97,13 +97,17 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
         calibrator = await repo.get_latest_calibrator(session, run.scanner_id)
         # Validated edge multiplier for this scanner, surfaced on every signal so the
         # ensemble/UI can weight proven scanners more heavily. Prefer the walk-forward
-        # out-of-sample weight (proper time-separated validation) when one exists; otherwise
-        # fall back to the calibrated win-rate lift.
-        edge_weight = await repo.get_latest_edge_weight(session, run.scanner_id)
-        if edge_weight is None:
+        # out-of-sample record (global + per-regime weights from time-separated validation);
+        # fall back to the calibrated win-rate lift when the scanner has never been validated.
+        edge_record = await repo.get_latest_edge_record(session, run.scanner_id)
+        if edge_record is not None:
+            edge_weight = edge_record["edge_weight"]
+            regime_edges = edge_record.get("regime_edges") or {}
+        else:
             from engine.evidence import edge_weight_from_calibrator
 
             edge_weight = edge_weight_from_calibrator(calibrator)
+            regime_edges = {}
 
         aux: dict = {}
         peers: list[str] = []
@@ -181,6 +185,7 @@ async def execute_scan(session, run_id: UUID, redis: aioredis.Redis | None = Non
                 asset_class=_asset_class(symbol),
                 calibrator=calibrator,
                 edge_weight=edge_weight,
+                regime_edges=regime_edges,
             )
             await repo.save_signal(session, signal)
             if result.triggered:

@@ -112,6 +112,7 @@ async def validate_roster(
             promotion=blended.promotion,
             oos_profit_factor=blended.blended_profit_factor,
             edge_weight=blended.edge_weight,
+            regime_edges=blended.regime_edges,
             detail={
                 "blend": "roster",
                 "n_symbols": blended.n_symbols,

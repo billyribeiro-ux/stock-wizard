@@ -30,6 +30,41 @@ class BlendedEdge:
     promotion: str  # pooled decision: promote | keep_testing | retire
     edge_weight: float
     per_symbol: list[dict] = field(default_factory=list)
+    # Per-regime edge weight (trend/range) from the OOS regime breakdown — lets a scanner
+    # that's globally net-flat still be traded in the regime where it has proven edge.
+    regime_edges: dict[str, float] = field(default_factory=dict)
+
+
+def _regime_edges(results: list[tuple[str, ForwardTest]]) -> dict[str, float]:
+    """Pool the OOS regime breakdown across symbols into a per-regime edge weight.
+
+    Each symbol's forward test exposes ``out_of_sample.regime_breakdown`` (per-regime
+    metrics). We pool trades + trade-weighted PF per regime, then map to an edge weight with
+    the same trade-count floor + verdict logic used globally."""
+    from ..evidence import edge_weight_from_walkforward
+
+    pooled: dict[str, list] = {}  # regime -> [trades, pnl, win*trades, [pf...]]
+    for _sym, ft in results:
+        for regime, m in (ft.out_of_sample.regime_breakdown or {}).items():
+            agg = pooled.setdefault(regime, [0, 0.0, 0.0, []])
+            agg[0] += m.total_trades
+            agg[1] += float(m.total_pnl)
+            agg[2] += m.win_rate * m.total_trades
+            if m.total_trades:
+                agg[3].append(m.profit_factor)
+    out: dict[str, float] = {}
+    for regime, (trades, pnl, _w, pfs) in pooled.items():
+        pf = sum(pfs) / len(pfs) if pfs else 0.0
+        if trades < MIN_OOS_TRADES:
+            promotion = "keep_testing"
+        elif pf >= 1.3 and pnl > 0:
+            promotion = "promote"
+        elif pf < 1.0:
+            promotion = "retire"
+        else:
+            promotion = "keep_testing"
+        out[regime] = round(edge_weight_from_walkforward(promotion, pf), 4)
+    return out
 
 
 def blend_forward_tests(
@@ -79,4 +114,5 @@ def blend_forward_tests(
         promotion=promotion,
         edge_weight=round(edge_weight, 4),
         per_symbol=per_symbol,
+        regime_edges=_regime_edges(results),
     )

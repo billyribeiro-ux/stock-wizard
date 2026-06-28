@@ -206,6 +206,41 @@ def test_unproven_scanner_still_trades():
     assert sig.entry is not None and sig.stop is not None
 
 
+def _vp_result(er):
+    """A triggered volume_profile_poc result (regime-agnostic affinity) with regime.er."""
+    from engine.schemas import EvidencePacket, InvalidationRule, ScannerResult
+
+    return ScannerResult(
+        scanner_id="volume_profile_poc",
+        symbol="SPY",
+        timeframe=Timeframe.D1,
+        ts=NOW,
+        triggered=True,
+        direction=Side.SHORT,
+        score=0.7,
+        classification="vah_rejection",
+        levels={"close": 100.0},
+        feature_refs={"atr.14": 2.0, "regime.er": er},
+        evidence=EvidencePacket(
+            why="", why_now="", invalidation=InvalidationRule(description="", kind="price"),
+            confidence=0.7,
+        ),
+    )
+
+
+def test_regime_conditional_edge_trades_in_good_regime_gates_in_bad():
+    # volume_profile_poc: globally retired (0.3) but has edge in range (1.2), none in trend.
+    regime_edges = {"range": 1.2, "trend": 0.3}
+    # range regime (low ER) -> uses 1.2 -> trades
+    in_range = build_signal(_vp_result(er=0.05), edge_weight=0.3, regime_edges=regime_edges)
+    assert in_range.edge_weight == 1.2
+    assert in_range.entry is not None and in_range.stop is not None
+    # trend regime (high ER) -> uses 0.3 -> edge-gated, no plan
+    in_trend = build_signal(_vp_result(er=0.6), edge_weight=0.3, regime_edges=regime_edges)
+    assert in_trend.edge_weight == 0.3
+    assert in_trend.entry is None and "edge-gated" in (in_trend.notes or "").lower()
+
+
 def test_walkforward_weights_demote_overfit_scanner():
     """An OOS-promoted scanner should out-vote an OOS-retired one of equal raw score."""
     from engine.evidence import combine, edge_weight_from_walkforward
