@@ -13,6 +13,7 @@ from ..schemas import OHLCV, FeatureSnapshot, OptionChain, Regime
 from . import atr as atr_mod
 from . import gex as gex_mod
 from . import price_structure as struct_mod
+from . import regime as regime_mod
 from . import volume as vol_mod
 from . import volume_profile as vp_mod
 from . import vwap as vwap_mod
@@ -80,6 +81,8 @@ class FeatureFactory:
                 regime = Regime.RANGE
 
             feats["vwap.dist_atr"] = vwap_mod.vwap_distance_atr(df, a)
+            # Kaufman efficiency ratio — trend(>=) vs range, consistent with the backtester.
+            feats["regime.er"] = regime_mod.efficiency_ratio_last(df["close"])
 
             profile = vp_mod.compute_profile(df)
             if profile is not None:

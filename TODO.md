@@ -24,9 +24,14 @@ what's in flight and what's next.
       `features/regime.py`; surfaced `mtf_structure` as trend-only.
 - [x] Feed walk-forward OOS verdicts into the edge-weighted ensemble
       (`edge_weight_from_walkforward`).
-- [ ] Regime-**gate** trend-only scanners (e.g. `mtf_structure`) in the live scan path so
-      they only fire / weight up in their favourable regime.
-- [ ] Persist per-scanner OOS edge weights and apply them in `scan_service`/signal building.
+- [x] Regime-**gate** trend-only scanners (e.g. `mtf_structure`) in the live signal path —
+      `build_signal` suppresses the plan + flags `regime_aligned=False` in unfavourable
+      regimes (`scanners/regime_affinity.py`, snapshot `regime.er`).
+- [x] Surface per-scanner edge weight on signals (`SignalPacket.edge_weight`, from the
+      calibrated win-rate lift via `scan_service`).
+- [ ] Persist *walk-forward OOS* edge weights (not just calibrator-derived) per scanner and
+      feed them into `scan_service` / the ensemble at runtime.
+- [ ] Surface the regime-gate badge + edge weight in the results/signal UI.
 - [ ] Wire the FMP key into a Settings entry end-to-end and confirm a live scan uses it.
 - [ ] Commit a real-data backtest-regression fixture under `tests/backtest_regression/`.
 - [ ] Live-validate the Schwab OAuth round-trip once app credentials are configured

@@ -148,6 +148,50 @@ def test_edge_weight_from_walkforward():
     assert edge_weight_from_walkforward("retire", 0.9) == 0.3
 
 
+def _trend_only_result(direction, er):
+    """A triggered mtf_structure result carrying a regime.er feature ref."""
+    from engine.schemas import EvidencePacket, InvalidationRule, ScannerResult
+
+    return ScannerResult(
+        scanner_id="mtf_structure",
+        symbol="SPY",
+        timeframe=Timeframe.D1,
+        ts=NOW,
+        triggered=True,
+        direction=direction,
+        score=0.8,
+        classification="bos_continuation",
+        levels={"close": 100.0},
+        feature_refs={"atr.14": 2.0, "regime.er": er},
+        evidence=EvidencePacket(
+            why="",
+            why_now="",
+            invalidation=InvalidationRule(description="", kind="price"),
+            confidence=0.8,
+        ),
+    )
+
+
+def test_regime_gate_suppresses_trend_only_scanner_in_range():
+    # mtf_structure is trend-only; in a range regime (low ER) it must be gated: no plan.
+    sig = build_signal(_trend_only_result(Side.LONG, er=0.05))
+    assert sig.regime_aligned is False
+    assert sig.entry is None and sig.stop is None and sig.rr is None
+    assert "regime-gated" in (sig.notes or "").lower()
+
+
+def test_regime_gate_allows_trend_only_scanner_in_trend():
+    # same scanner in a trend regime (high ER) trades normally.
+    sig = build_signal(_trend_only_result(Side.LONG, er=0.6))
+    assert sig.regime_aligned is True
+    assert sig.entry is not None and sig.stop is not None
+
+
+def test_edge_weight_surfaced_on_signal():
+    sig = build_signal(_trend_only_result(Side.LONG, er=0.6), edge_weight=1.8)
+    assert sig.edge_weight == 1.8
+
+
 def test_walkforward_weights_demote_overfit_scanner():
     """An OOS-promoted scanner should out-vote an OOS-retired one of equal raw score."""
     from engine.evidence import combine, edge_weight_from_walkforward

@@ -64,6 +64,10 @@ export interface SignalPacket {
 	state: string;
 	score: number;
 	regime: string;
+	/** false when the source scanner has no validated edge in the current regime (gated) */
+	regime_aligned?: boolean;
+	/** validated edge multiplier (1.0 = neutral, >1 proven, <1 under-performing) */
+	edge_weight?: number;
 	entry: number;
 	stop: number;
 	targets: number[];

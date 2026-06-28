@@ -33,3 +33,16 @@ def classify_regime(closes: pd.Series, window: int = 20, trend_er: float = 0.30)
     """Regime label for the most recent bar."""
     labels = regime_labels(closes, window, trend_er)
     return labels[-1] if labels else RANGE
+
+
+def efficiency_ratio_last(closes: pd.Series, window: int = 20) -> float | None:
+    """Scalar Efficiency Ratio for the most recent bar (None until the window is filled)."""
+    if len(closes) <= window:
+        return None
+    er = efficiency_ratio(closes, window)
+    v = er.iloc[-1]
+    return float(v) if v == v else None  # NaN-safe
+
+
+# Default ER threshold separating trend from range (shared by features + backtest).
+TREND_ER = 0.30

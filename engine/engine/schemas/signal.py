@@ -47,6 +47,16 @@ class SignalPacket(BaseModel):
     )
     confidence_band: tuple[float, float] = (0.0, 1.0)
     regime: Regime = Regime.UNKNOWN
+    regime_aligned: bool = Field(
+        default=True,
+        description="False when the source scanner's validated regime does not match the "
+        "current regime (signal demoted by the regime gate)",
+    )
+    edge_weight: float = Field(
+        default=1.0,
+        description="Validated edge multiplier for the source scanner (OOS/calibrated); "
+        "1.0 = neutral/unproven, >1 = proven, <1 = under-performing",
+    )
 
     # --- trade plan ---
     entry: Decimal | None = None

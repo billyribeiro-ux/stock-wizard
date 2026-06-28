@@ -7,6 +7,14 @@ the project is pre-1.0 and versions track development waves rather than semver r
 ## [Unreleased]
 
 ### Added
+- **Live regime-gating + edge weighting in the signal path.** `build_signal` now demotes a
+  triggered signal when its source scanner has no validated edge in the current regime
+  (`scanners/regime_affinity.py`, derived from the regime-segmented backtests — e.g.
+  `mtf_structure` is trend-only): the trade plan is suppressed, `regime_aligned=False` is
+  set, and a note explains the gate. The snapshot now carries `regime.er` (Kaufman
+  efficiency ratio, same classifier as the backtester). `SignalPacket` gains `regime_aligned`
+  and `edge_weight`; `scan_service` populates `edge_weight` from the calibrated win-rate lift
+  so proven scanners are surfaced as such. TS types + contract schema updated.
 - **Regime-segmented backtesting.** New `features/regime.py` (Kaufman Efficiency Ratio →
   trend/range, point-in-time) and `BacktestEngine` now tags each trade with its entry regime
   and populates `BacktestResult.regime_breakdown` (per-regime metrics). Surfaced that
