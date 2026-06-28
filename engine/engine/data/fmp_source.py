@@ -15,9 +15,11 @@ import requests
 from ..schemas import OHLCV, MarketBar, Timeframe
 from .base import DataSourceError, MissingCredentials, OhlcvSource
 
-_BASE = "https://financialmodelingprep.com/api/v3"
+# FMP "stable" API (the v3 /historical-price-full + /profile endpoints were retired for
+# new keys on 2025-08-31). Daily uses split+dividend-adjusted EOD; intraday uses the
+# historical-chart series. Both take ?symbol=&from=&to=.
+_BASE = "https://financialmodelingprep.com/stable"
 
-# FMP intraday endpoints are /historical-chart/{interval}/{symbol}; daily is /historical-price-full.
 _INTRADAY = {
     Timeframe.M1: "1min",
     Timeframe.M5: "5min",
@@ -58,24 +60,20 @@ class FMPSource(OhlcvSource):
     def get_ohlcv(
         self, symbol: str, timeframe: Timeframe, start: datetime, end: datetime | None = None
     ) -> OHLCV:
+        window = {
+            "symbol": symbol,
+            "from": start.date().isoformat(),
+            "to": (end or datetime.now(UTC)).date().isoformat(),
+        }
         if timeframe in _INTRADAY:
-            rows = self._get(
-                f"historical-chart/{_INTRADAY[timeframe]}/{symbol}",
-                **{
-                    "from": start.date().isoformat(),
-                    "to": (end or datetime.now(UTC)).date().isoformat(),
-                },
-            )
+            rows = self._get(f"historical-chart/{_INTRADAY[timeframe]}", **window)
             records = rows if isinstance(rows, list) else []
+            adjusted = False
         else:
-            payload = self._get(
-                f"historical-price-full/{symbol}",
-                **{
-                    "from": start.date().isoformat(),
-                    "to": (end or datetime.now(UTC)).date().isoformat(),
-                },
-            )
-            records = payload.get("historical", []) if isinstance(payload, dict) else []
+            # split+dividend-adjusted daily EOD (adjOpen/adjHigh/adjLow/adjClose).
+            rows = self._get("historical-price-eod/dividend-adjusted", **window)
+            records = rows if isinstance(rows, list) else []
+            adjusted = True
 
         bars: list[MarketBar] = []
         for r in records:
@@ -88,13 +86,13 @@ class FMPSource(OhlcvSource):
                         symbol=symbol,
                         timeframe=timeframe,
                         ts=ts,
-                        open=_to_decimal(r["open"]),
-                        high=_to_decimal(r["high"]),
-                        low=_to_decimal(r["low"]),
-                        close=_to_decimal(r.get("adjClose", r["close"])),
+                        open=_to_decimal(r.get("adjOpen", r.get("open"))),
+                        high=_to_decimal(r.get("adjHigh", r.get("high"))),
+                        low=_to_decimal(r.get("adjLow", r.get("low"))),
+                        close=_to_decimal(r.get("adjClose", r.get("close"))),
                         volume=int(r.get("volume", 0) or 0),
                         source=self.name,
-                        is_adjusted="adjClose" in r,
+                        is_adjusted=adjusted,
                     )
                 )
             except Exception:
