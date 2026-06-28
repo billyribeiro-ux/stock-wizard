@@ -222,7 +222,9 @@ def _vp_result(er):
         levels={"close": 100.0},
         feature_refs={"atr.14": 2.0, "regime.er": er},
         evidence=EvidencePacket(
-            why="", why_now="", invalidation=InvalidationRule(description="", kind="price"),
+            why="",
+            why_now="",
+            invalidation=InvalidationRule(description="", kind="price"),
             confidence=0.7,
         ),
     )
