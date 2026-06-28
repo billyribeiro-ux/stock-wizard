@@ -35,8 +35,11 @@ what's in flight and what's next.
 - [x] Run backtests on the FMP-preferred data resolver (not hard-coded yfinance).
 - [ ] Wire the FMP key into a Settings entry end-to-end and confirm a live scan uses it
       (needs a running DB; validated offline so far).
-- [ ] Batch-validate the whole scanner roster (multi-symbol forward tests) and store a
-      blended OOS edge weight per scanner, rather than last-write-wins per backtest.
+- [x] Batch-validate the whole scanner roster (multi-symbol forward tests) → blended OOS
+      edge weight per scanner, persisted + applied live (`roster_service`, `blend_forward_tests`,
+      `POST /backtests/validate-roster`, ML Lab edge-weights panel).
+- [ ] Schedule the roster validation to re-run periodically (cron/worker) so edge weights
+      stay fresh as regimes shift.
 - [ ] Commit a real-data backtest-regression fixture under `tests/backtest_regression/`.
 - [ ] Live-validate the Schwab OAuth round-trip once app credentials are configured
       (currently verified offline only).

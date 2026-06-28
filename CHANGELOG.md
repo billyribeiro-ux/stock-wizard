@@ -7,6 +7,13 @@ the project is pre-1.0 and versions track development waves rather than semver r
 ## [Unreleased]
 
 ### Added
+- **Batch roster validation (system-wide self-grading).** `backtesting/roster.py`
+  (`blend_forward_tests`) pools each symbol's out-of-sample trades per scanner into one
+  blended promotion + edge weight; `services/roster_service.py` forward-tests the whole
+  OHLCV-backtestable roster across a basket (on the FMP feed) and persists each scanner's
+  blended edge weight. New endpoints `POST /backtests/validate-roster` and
+  `GET /backtests/edge-weights`; the ML Lab gains a "Scanner edge weights" panel with a
+  one-click roster-validate button. `scan_service` already prefers these persisted weights.
 - **Persisted walk-forward edge weights, applied live.** A forward-test backtest now persists
   the out-of-sample verdict + derived edge weight per scanner
   (`repo.save_walkforward_edge` → `model_registry` as `walkforward:{scanner_id}`), and
