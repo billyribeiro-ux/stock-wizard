@@ -127,3 +127,32 @@ def test_ratchet_disabled_by_default():
     pos.mfe = 8.0
     eng._ratchet_stop(pos, eng.cfg)
     assert pos.stop == 102.0  # untouched when disabled
+
+
+def test_ensemble_backtest_runs_and_drops_retired():
+    from engine.backtesting import backtest_ensemble
+
+    ohlcv = make_ohlcv(n=400, drift=0.1, amp=1.5)
+    # volume_profile_poc is "retired" (weight 0.3) -> excluded; only breakout_quality votes.
+    res = backtest_ensemble(
+        ["breakout_quality", "volume_profile_poc"],
+        ohlcv,
+        edge_weights={"breakout_quality": 1.5, "volume_profile_poc": 0.3},
+        config=BacktestConfig(min_score=0.3),
+    )
+    assert res.scanner_id == "ensemble:breakout_quality"  # retired one dropped
+    assert len(res.equity_curve) > 0
+    assert res.metrics.total_trades >= 0
+
+
+def test_ensemble_all_retired_makes_no_trades():
+    from engine.backtesting import backtest_ensemble
+
+    ohlcv = make_ohlcv(n=300, drift=0.05, amp=1.0)
+    res = backtest_ensemble(
+        ["breakout_quality", "volume_profile_poc"],
+        ohlcv,
+        edge_weights={"breakout_quality": 0.3, "volume_profile_poc": 0.3},
+        config=BacktestConfig(min_score=0.3),
+    )
+    assert res.metrics.total_trades == 0  # every scanner gated out -> no votes

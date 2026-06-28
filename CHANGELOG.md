@@ -7,6 +7,11 @@ the project is pre-1.0 and versions track development waves rather than semver r
 ## [Unreleased]
 
 ### Added
+- **Multi-scanner ensemble backtest** (`backtest_ensemble`) — fuses scanners on each bar via
+  the edge-weighted consensus, dropping OOS-retired ones before voting. OOS study: it wins on
+  absolute PnL but not risk-adjusted vs the single best scanner (the two proven edges are
+  correlated momentum), so it's kept as a generalizing capability, documented honestly in
+  `docs/BACKTESTS.md`.
 - **Evidence-driven trade management (measured, not guessed).** Added no-lookahead ratcheting
   stops (`breakeven_atr`/`trail_atr` in `BacktestConfig`) and tested them OOS — they *degrade*
   the proven scanners (breakout_quality +3966→+2794, win 55%→45%), so they're kept default-OFF.

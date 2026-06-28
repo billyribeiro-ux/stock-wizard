@@ -58,8 +58,12 @@ what's in flight and what's next.
 - [x] Live **edge gate**: OOS-retired scanners (PF < 1) no longer trade live.
 - [ ] Walk-forward-learned per-scanner exit/threshold params (in-sample optimise → OOS
       validate) instead of global defaults — only if it beats baseline OOS.
-- [ ] Multi-scanner ensemble portfolio backtest (compose proven scanners; prove it beats any
-      single scanner OOS).
+- [x] Multi-scanner ensemble backtest (`backtest_ensemble`) — fuses proven scanners via the
+      edge-weighted consensus, drops retired ones. OOS finding: wins on absolute PnL but not
+      risk-adjusted vs the single best scanner (two correlated momentum edges); kept as a
+      generalizing capability for when more *independent* edges are validated.
+- [ ] Validate genuinely *independent* edge families (mean-reversion in range regimes,
+      breadth/internals, options-flow) so the ensemble has uncorrelated signals to fuse.
 
 ## Known limitations / environment
 - yfinance is unreachable in the sandbox (curl_cffi TLS vs the agent proxy); FMP and other

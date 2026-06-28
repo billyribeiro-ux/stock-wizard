@@ -179,6 +179,24 @@ tradeable signal: `build_signal` suppresses its plan (`_EDGE_FLOOR = 0.5`) and f
 ones (>1) trade normally — innocent until proven losing. This directly raises live expectancy
 by not trading the scanners proven to lose, and composes with the regime gate.
 
+### Multi-scanner ensemble (`backtest_ensemble`)
+Fuses several scanners on the same bar via the edge-weighted consensus, dropping OOS-retired
+scanners (edge weight < 0.5) before voting. Held-out 40%, 6-symbol basket:
+
+| Strategy | trades | win% | meanPF | totPnL |
+|---|---:|---:|---:|---:|
+| breakout_quality alone | 149 | 49.7 | **1.47** | +3541 |
+| bigger_move alone | 90 | 42.2 | 1.07 | +308 |
+| ensemble (bq+bm, edge-weighted) | 229 | 47.2 | 1.32 | **+3879** |
+
+The ensemble wins on **absolute** PnL (+10%) by capturing both scanners' opportunities, but
+breakout_quality alone is better **risk-adjusted** (PF 1.47 vs 1.32) — naive fusion of
+correlated edges adds turnover, not per-trade quality. So the ensemble is kept as a
+*generalizing capability* (it auto-fuses validated edges and excludes retired ones as the
+roster grows) rather than presented as a strict improvement over concentrating on the single
+best edge. As more *independent* edges get validated, the consensus should improve risk-
+adjusted returns; with two correlated momentum scanners today, it doesn't.
+
 ## Reproduce
 
 The harness lives in the scratchpad (not committed; it's a throwaway). Set `FMP_KEY` and

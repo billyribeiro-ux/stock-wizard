@@ -1,6 +1,7 @@
 """Backtesting engine + metrics + walk-forward / forward testing."""
 
 from .engine import BacktestConfig, BacktestEngine
+from .ensemble_bt import backtest_ensemble
 from .failure import FailureAnalysis, analyze_failures
 from .leakage import Leak, LeakageReport, audit_feature_lookahead
 from .metrics import compute_metrics, max_drawdown
@@ -40,4 +41,5 @@ __all__ = [
     "backtest_portfolio",
     "blend_forward_tests",
     "BlendedEdge",
+    "backtest_ensemble",
 ]
