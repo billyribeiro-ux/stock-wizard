@@ -28,6 +28,11 @@ the project is pre-1.0 and versions track development waves rather than semver r
   `?symbol=&from=&to=`.
 
 ### Fixed
+- **`vwap.dist_atr` was degenerate on daily+ bars.** It was built from *session* VWAP,
+  which collapses to a single bar's typical price when there's one bar per calendar day, so
+  the distance read ~0 and `trend_exhaustion` (plus other daily scanners reading it) never
+  saw overextension. `features/vwap.py` now uses session VWAP intraday and a **rolling
+  VWAP** on daily+ data. `trend_exhaustion` now triggers and is evaluated properly.
 - **`.gitignore` was swallowing the entire data-adapter package.** The unanchored `data/`
   rule matched `engine/engine/data/`, so 11 source files (yfinance, EDGAR, Finnhub, FMP,
   Schwab, base protocols, registry, validation, calendar, internals stub) had never been
@@ -42,4 +47,8 @@ the project is pre-1.0 and versions track development waves rather than semver r
   price/structure scanners — see `docs/BACKTESTS.md`. `breakout_quality` leads (+12.1% of
   deployed capital, mean Sharpe +1.57, 51% win rate); results are realistically mixed,
   confirming no-lookahead behaviour.
-- `pytest` 276 unit tests pass; full lint/type/web-check suite clean.
+- **Walk-forward / out-of-sample validation** (60/40 split + Monte-Carlo + promote/retire
+  decisions, ~5y): `breakout_quality` is the only broadly robust scanner OOS (5/8 PROMOTE,
+  mean OOS PF 1.44, MC p(profit) 83–95%); the rest show in-sample→OOS decay, as expected.
+- `pytest` 278 unit tests pass (added VWAP-distance regression tests); full lint/type/
+  web-check suite clean.

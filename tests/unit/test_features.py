@@ -11,6 +11,7 @@ from engine.features import atr as atr_mod
 from engine.features import price_structure as struct
 from engine.features import volume as vol_mod
 from engine.features import volume_profile as vp
+from engine.features import vwap as vwap_mod
 from engine.features.base import ohlcv_to_frame
 from engine.schemas import OHLCV, MarketBar, Timeframe
 from tests.conftest import make_ohlcv
@@ -36,6 +37,27 @@ def test_volume_slope_sign():
     rising.iloc[-5:, rising.columns.get_loc("volume")] = [100, 200, 300, 400, 500]
     slope = vol_mod.volume_slope(rising, 5)
     assert slope is not None and slope > 0
+
+
+def test_vwap_distance_atr_meaningful_on_daily():
+    """Regression: session VWAP collapses to the bar's own typical price on daily bars
+    (one bar per calendar day), so distance was ~0 and overextension scanners never fired.
+    The rolling-VWAP fallback must yield a non-degenerate stretch on a trending daily series.
+    """
+    daily = make_ohlcv(n=120, timeframe=Timeframe.D1, drift=0.6, amp=1.0, base_volume=1_000_000)
+    df = ohlcv_to_frame(daily)
+    atr_val = atr_mod.atr_last(df, 14)
+    dist = vwap_mod.vwap_distance_atr(df, atr_val)
+    assert dist is not None
+    # a steadily trending series should be measurably stretched from its trailing VWAP
+    assert abs(dist) > 0.5
+
+
+def test_rolling_vwap_tracks_price():
+    df = ohlcv_to_frame(make_ohlcv(n=60, timeframe=Timeframe.D1))
+    rv = vwap_mod.rolling_vwap(df, window=20)
+    assert len(rv) == len(df)
+    assert not rv.isna().all()
 
 
 def test_volume_profile_poc_at_high_volume_price():

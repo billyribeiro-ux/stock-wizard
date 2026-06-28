@@ -41,6 +41,39 @@ Baseline backtests of the price/structure scanners, run through the real `Backte
 - Results are realistically mixed (no scanner shows implausible Sharpe on real data),
   which is the signature of a clean, no-lookahead backtest.
 
+## Walk-forward / out-of-sample validation
+
+The in-sample table above is only the first gate. Each scanner was then run through
+`backtesting/walkforward.py`: a 60/40 in-sample→out-of-sample split per symbol, with a
+bootstrap Monte-Carlo on the OOS trades and a `promote / keep_testing / retire` decision
+(`PF ≥ 1.3`, positive expectancy, win ≥ 40%, ≥ 5 trades), over ~5y of FMP daily data.
+
+| Scanner | promote | keep | retire | mean OOS PF | Verdict |
+|---|---:|---:|---:|---:|---|
+| **breakout_quality** | 5 | 2 | 1 | **1.44** | Robust — survives OOS on most names |
+| volume_profile_poc | 1 | 4 | 3 | 1.11 | Marginal — IS edge mostly fades OOS |
+| mtf_structure | 2 | 1 | 5 | 0.93 | Largely overfit — IS PF collapses OOS |
+| trend_exhaustion | 0 | 2 | 6 | 0.79 | No standalone edge (fading a bull trend) |
+
+- **`breakout_quality` is the only scanner with broadly robust out-of-sample edge** —
+  QQQ/AAPL/NVDA/TSLA/JPM all PROMOTE with Monte-Carlo p(profit) 83–95%. SPY/META sit at
+  keep_testing; only AMZN retires.
+- The others show the classic in-sample → out-of-sample decay: positive IS profit factors
+  that don't survive on unseen data. This is the system working as intended (the blueprint's
+  "nothing is trusted until it survives time-separated validation").
+- `trend_exhaustion` now trades and is properly evaluated after the VWAP-distance fix
+  below; as a standalone counter-trend fade it has no edge over this trending window, which
+  is expected — its value is as a confluence input, not a standalone signal.
+
+### Fix surfaced by these backtests
+`trend_exhaustion` and several other daily scanners read `vwap.dist_atr`, which was built
+from **session** VWAP — and session VWAP collapses to the bar's own typical price on
+daily/weekly bars (one bar per calendar day), so the distance was always ~0 and
+`trend_exhaustion` never triggered. `features/vwap.py` now uses session VWAP for intraday
+data and a **rolling VWAP** for daily+ data, so the overextension signal is meaningful on
+every timeframe. (`squeeze_compression` correctly stays at 0 trades — it is a directionless
+watchlist signal; its directional companion is `momentum_ignition`.)
+
 ## Reproduce
 
 The harness lives in the scratchpad (not committed; it's a throwaway). Set `FMP_KEY` and

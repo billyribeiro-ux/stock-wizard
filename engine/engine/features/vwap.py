@@ -28,11 +28,35 @@ def anchored_vwap(df: pd.DataFrame, anchor_idx: int) -> pd.Series:
     return pv / vol
 
 
-def vwap_distance_atr(df: pd.DataFrame, atr_value: float | None) -> float | None:
-    """Distance of last close from session VWAP, in ATR units (signed)."""
+def rolling_vwap(df: pd.DataFrame, window: int = 20) -> pd.Series:
+    """Volume-weighted average price over a trailing ``window`` of bars.
+
+    Timeframe-agnostic reference for "stretch from the mean": unlike session VWAP it does
+    not collapse on daily/weekly bars (where each calendar day holds a single bar).
+    """
+    tp = typical_price(df)
+    w = max(1, min(window, len(df)))
+    pv = (tp * df["volume"]).rolling(w, min_periods=1).sum()
+    vol = df["volume"].rolling(w, min_periods=1).sum().replace(0, np.nan)
+    return pv / vol
+
+
+def _is_intraday(df: pd.DataFrame) -> bool:
+    """True when the index carries more than one bar on at least one calendar day."""
+    day = df.index.tz_convert("America/New_York").date if df.index.tz is not None else df.index.date
+    return bool(pd.Index(day).duplicated().any())
+
+
+def vwap_distance_atr(df: pd.DataFrame, atr_value: float | None, window: int = 20) -> float | None:
+    """Distance of last close from VWAP, in ATR units (signed).
+
+    Uses *session* VWAP for intraday data and a *rolling* VWAP for daily+ data, so the
+    overextension signal is meaningful on every timeframe (session VWAP degenerates to the
+    bar's own typical price when there is only one bar per day).
+    """
     if atr_value is None or atr_value <= 0 or df.empty:
         return None
-    vw = session_vwap(df)
+    vw = session_vwap(df) if _is_intraday(df) else rolling_vwap(df, window)
     last_vwap = vw.iloc[-1]
     if np.isnan(last_vwap):
         return None

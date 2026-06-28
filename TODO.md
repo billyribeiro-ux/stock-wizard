@@ -16,9 +16,12 @@ what's in flight and what's next.
 ## Next up
 - [ ] Set `main` as the GitHub **default branch** (repo Settings → Branches — needs the UI
       or an admin API call; not exposed to the agent toolset).
-- [ ] Investigate `trend_exhaustion` and `squeeze_compression` triggering 0 trades at
-      `min_score=0.35` (threshold/condition review).
-- [ ] Walk-forward + regime-segmented backtests (current baseline is a single ~3y window).
+- [x] Investigate `trend_exhaustion`/`squeeze_compression` zero-trade behaviour — fixed the
+      session-VWAP-on-daily bug (`trend_exhaustion`); `squeeze_compression` is a
+      directionless watchlist signal by design.
+- [x] Walk-forward + out-of-sample validation across the basket → `docs/BACKTESTS.md`.
+- [ ] Regime-segmented backtests (trend vs chop) — mean-reversion scanners should be judged
+      in range regimes, not the trending baseline window.
 - [ ] Wire the FMP key into a Settings entry end-to-end and confirm a live scan uses it.
 - [ ] Commit a real-data backtest-regression fixture under `tests/backtest_regression/`.
 - [ ] Live-validate the Schwab OAuth round-trip once app credentials are configured
