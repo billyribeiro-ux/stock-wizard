@@ -59,3 +59,33 @@ def test_monte_carlo_distribution():
 
 def test_monte_carlo_too_few_trades():
     assert monte_carlo([], n_sims=100) is None
+
+
+def test_blend_forward_tests_pools_across_symbols():
+    from engine.backtesting import blend_forward_tests
+
+    a = make_ohlcv(n=600, drift=0.08, amp=1.5)
+    b = make_ohlcv(n=600, drift=0.06, amp=2.0, start_px=50.0)
+    fts = []
+    for sym, o in [("A", a), ("B", b)]:
+        ft = forward_test("volume_profile_poc", o, split_frac=0.6, config=CFG)
+        if ft is not None:
+            fts.append((sym, ft))
+    assert fts, "expected at least one forward test to run"
+
+    blended = blend_forward_tests("volume_profile_poc", fts)
+    assert blended is not None
+    assert blended.scanner_id == "volume_profile_poc"
+    assert blended.n_symbols == len(fts)
+    assert blended.promotion in {"promote", "keep_testing", "retire"}
+    assert 0.3 <= blended.edge_weight <= 2.5
+    assert 0.0 <= blended.promote_fraction <= 1.0
+    # pooled OOS trades equal the sum of each symbol's OOS trades
+    assert blended.total_oos_trades == sum(len(ft.out_of_sample.trades) for _, ft in fts)
+
+
+def test_blend_forward_tests_empty_is_none():
+    from engine.backtesting import blend_forward_tests
+
+    assert blend_forward_tests("volume_profile_poc", []) is None
+    assert blend_forward_tests("volume_profile_poc", [("A", None)]) is None  # type: ignore[list-item]

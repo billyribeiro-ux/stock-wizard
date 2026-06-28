@@ -1,6 +1,7 @@
 import * as v from 'valibot';
 import { query, command } from '$app/server';
 import * as api from '$lib/server/api';
+import type { EdgeWeight } from '$lib/server/api';
 import type { MlModel, MlModelsResponse } from '$lib/types';
 
 const TrainModelSchema = v.object({
@@ -32,3 +33,23 @@ export const getModel = query(v.pipe(v.string(), v.nonEmpty()), async (id): Prom
 export const listModels = query(async (): Promise<MlModelsResponse> => {
 	return api.listModels();
 });
+
+/** Latest persisted walk-forward / roster edge weight per scanner. */
+export const listEdgeWeights = query(async (): Promise<{ items: EdgeWeight[] }> => {
+	return api.listEdgeWeights();
+});
+
+/** Kick off a background roster validation (forward-tests the scanner roster, persists
+ * each scanner's blended out-of-sample edge weight). */
+export const validateRoster = command(
+	v.optional(
+		v.object({
+			symbols: v.optional(v.array(v.string())),
+			history: v.optional(v.string())
+		}),
+		{}
+	),
+	async (input): Promise<{ status: string; roster: string[] }> => {
+		return api.validateRoster(input ?? {});
+	}
+);

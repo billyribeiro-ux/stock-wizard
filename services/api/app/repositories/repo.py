@@ -487,6 +487,36 @@ async def get_latest_edge_weight(session: AsyncSession, scanner_id: str) -> floa
     return float(ew) if isinstance(ew, int | float) else None
 
 
+async def list_edge_weights(session: AsyncSession) -> list[dict]:
+    """Latest persisted walk-forward edge weight per scanner (newest row wins)."""
+    stmt = (
+        select(ModelRegistry)
+        .where(ModelRegistry.name.like("walkforward:%"))
+        .order_by(ModelRegistry.created_at.desc())
+    )
+    rows = (await session.execute(stmt)).scalars().all()
+    seen: set[str] = set()
+    out: list[dict] = []
+    for row in rows:
+        scanner_id = row.name.split(":", 1)[1]
+        if scanner_id in seen:
+            continue
+        seen.add(scanner_id)
+        m = row.metrics or {}
+        out.append(
+            {
+                "scanner_id": scanner_id,
+                "promotion": m.get("promotion"),
+                "edge_weight": m.get("edge_weight"),
+                "oos_profit_factor": m.get("oos_profit_factor"),
+                "detail": m.get("detail", {}),
+                "validated_at": row.created_at.isoformat() if row.created_at else None,
+            }
+        )
+    out.sort(key=lambda r: r["edge_weight"] or 0.0, reverse=True)
+    return out
+
+
 # ---- alert rules / events ----
 async def add_alert_rule(session: AsyncSession, rule_id, name, enabled, channel, config) -> None:
     session.add(

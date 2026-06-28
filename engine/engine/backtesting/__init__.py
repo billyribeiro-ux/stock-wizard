@@ -13,6 +13,7 @@ from .options_bt import (
     vertical_builder,
 )
 from .portfolio import backtest_portfolio
+from .roster import BlendedEdge, blend_forward_tests
 from .walkforward import ForwardTest, MonteCarlo, forward_test, monte_carlo, walk_forward
 
 __all__ = [
@@ -37,4 +38,6 @@ __all__ = [
     "vertical_builder",
     "backtest_structure",
     "backtest_portfolio",
+    "blend_forward_tests",
+    "BlendedEdge",
 ]

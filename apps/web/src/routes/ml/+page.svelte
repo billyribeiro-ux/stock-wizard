@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Icon from '$lib/components/Icon.svelte';
 	import FeatureImportanceChart from '$lib/components/FeatureImportanceChart.svelte';
-	import { trainModel, getModel, listModels } from './data.remote';
+	import { trainModel, getModel, listModels, listEdgeWeights, validateRoster } from './data.remote';
 	import type { MlModel } from '$lib/types';
 
 	const TIMEFRAMES = ['5m', '15m', '1h', '4h', '1d', '1w'] as const;
@@ -64,6 +64,25 @@
 	function loadPast(id: string): void {
 		errorMessage = null;
 		activeId = id;
+	}
+
+	// --- Roster validation / edge weights ------------------------------------
+	let validating = $state(false);
+
+	async function runRosterValidation(): Promise<void> {
+		validating = true;
+		try {
+			await validateRoster({});
+		} finally {
+			validating = false;
+		}
+	}
+
+	function edgeTone(w: number | null): string {
+		if (w === null) return 'text-base-400';
+		if (w >= 1.05) return 'text-long';
+		if (w <= 0.95) return 'text-short';
+		return 'text-base-300';
 	}
 
 	function statusMeta(status: string): { tone: string; label: string } {
@@ -236,6 +255,70 @@
 									</li>
 								{/each}
 							</ul>
+						{/if}
+					{/await}
+				</svelte:boundary>
+			</section>
+
+			<!-- Scanner edge weights (walk-forward / roster validation) -->
+			<section class="rounded-lg border border-base-700 bg-base-850 p-4">
+				<header class="mb-3 flex items-center justify-between">
+					<h2 class="flex items-center gap-2 text-sm font-semibold text-base-100">
+						<Icon name="ranking" class="text-accent" />
+						Scanner edge weights
+					</h2>
+					<button
+						type="button"
+						onclick={runRosterValidation}
+						disabled={validating}
+						class="flex items-center gap-1 rounded-md bg-base-800 px-2 py-1 text-xs text-base-200 hover:bg-base-700 disabled:opacity-50"
+						title="Forward-test the scanner roster across a basket and persist each scanner's out-of-sample edge weight"
+					>
+						<Icon
+							name={validating ? 'spinner-gap' : 'play'}
+							class={validating ? 'animate-spin' : ''}
+						/>
+						{validating ? 'started…' : 'validate roster'}
+					</button>
+				</header>
+				<p class="mb-3 text-[11px] text-base-500">
+					Blended out-of-sample edge per scanner (×1.0 = neutral). Proven scanners weight up; the
+					live signal path applies these.
+				</p>
+
+				<svelte:boundary>
+					{#snippet pending()}
+						<div class="h-24 animate-pulse rounded-md bg-base-900"></div>
+					{/snippet}
+
+					{#await listEdgeWeights() then { items }}
+						{#if items.length === 0}
+							<p class="text-xs text-base-500">
+								No validated scanners yet — run “validate roster”, then refresh.
+							</p>
+						{:else}
+							<ul class="space-y-1.5">
+								{#each items as ew (ew.scanner_id)}
+									<li class="flex items-center justify-between gap-2 text-xs">
+										<span class="truncate text-base-200" title={ew.scanner_id}>{ew.scanner_id}</span
+										>
+										<span class="flex items-center gap-2">
+											<span class="text-[10px] text-base-500">{ew.promotion ?? '—'}</span>
+											<span class="font-mono font-semibold {edgeTone(ew.edge_weight)}">
+												×{(ew.edge_weight ?? 1).toFixed(2)}
+											</span>
+										</span>
+									</li>
+								{/each}
+							</ul>
+							<button
+								type="button"
+								onclick={() => listEdgeWeights().refresh()}
+								class="mt-3 flex items-center gap-1 text-xs text-base-400 hover:text-base-200"
+							>
+								<Icon name="clock-clockwise" />
+								refresh
+							</button>
 						{/if}
 					{/await}
 				</svelte:boundary>

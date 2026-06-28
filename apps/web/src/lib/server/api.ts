@@ -190,6 +190,30 @@ export function getBacktest(id: string): Promise<Backtest> {
 	return request<Backtest>(`/backtests/${encodeURIComponent(id)}`);
 }
 
+export interface EdgeWeight {
+	scanner_id: string;
+	promotion: string | null;
+	edge_weight: number | null;
+	oos_profit_factor: number | null;
+	detail: Record<string, unknown>;
+	validated_at: string | null;
+}
+
+export function listEdgeWeights(): Promise<{ items: EdgeWeight[] }> {
+	return request<{ items: EdgeWeight[] }>('/backtests/edge-weights');
+}
+
+export function validateRoster(payload: {
+	symbols?: string[];
+	scanners?: string[];
+	history?: string;
+}): Promise<{ status: string; roster: string[] }> {
+	return request<{ status: string; roster: string[] }>('/backtests/validate-roster', {
+		method: 'POST',
+		body: payload
+	});
+}
+
 // --- Discovery -----------------------------------------------------------------
 
 export interface CreateDiscoveryPayload {

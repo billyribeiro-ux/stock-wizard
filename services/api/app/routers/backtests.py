@@ -75,6 +75,45 @@ async def list_backtests(session: AsyncSession = Depends(get_session)) -> dict:
     }
 
 
+class RosterValidateRequest(BaseModel):
+    symbols: list[str] | None = None
+    scanners: list[str] | None = None
+    history: str = "5y"
+    timeframe: str = "1d"
+    split_frac: float = 0.6
+
+
+async def _run_roster_inline(req: RosterValidateRequest) -> None:
+    from ..services.roster_service import validate_roster
+
+    async with SessionLocal() as session:
+        await validate_roster(
+            session,
+            symbols=req.symbols,
+            scanners=req.scanners,
+            history=req.history,
+            timeframe=req.timeframe,
+            split_frac=req.split_frac,
+        )
+
+
+@router.post("/backtests/validate-roster", status_code=202)
+async def validate_roster_endpoint(req: RosterValidateRequest, background: BackgroundTasks) -> dict:
+    """Forward-test the OHLCV-backtestable scanner roster across a basket, blend per-scanner
+    out-of-sample edge, and persist each scanner's edge weight (used live by scan_service).
+    Runs in the background; poll GET /backtests/edge-weights for results."""
+    from ..services.roster_service import backtestable_roster
+
+    background.add_task(_run_roster_inline, req)
+    return {"status": "started", "roster": req.scanners or backtestable_roster()}
+
+
+@router.get("/backtests/edge-weights")
+async def list_edge_weights(session: AsyncSession = Depends(get_session)) -> dict:
+    """Latest persisted walk-forward / roster edge weight per scanner."""
+    return {"items": await repo.list_edge_weights(session)}
+
+
 @router.get("/backtests/{backtest_id}")
 async def get_backtest(backtest_id: UUID, session: AsyncSession = Depends(get_session)) -> dict:
     bt = await repo.get_backtest(session, backtest_id)
