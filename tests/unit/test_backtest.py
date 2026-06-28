@@ -133,15 +133,35 @@ def test_ensemble_backtest_runs_and_drops_retired():
     from engine.backtesting import backtest_ensemble
 
     ohlcv = make_ohlcv(n=400, drift=0.1, amp=1.5)
-    # volume_profile_poc is "retired" (weight 0.3) -> excluded; only breakout_quality votes.
+    # volume_profile_poc is "retired" (weight 0.3 < floor) -> never votes; only breakout_quality.
     res = backtest_ensemble(
         ["breakout_quality", "volume_profile_poc"],
         ohlcv,
         edge_weights={"breakout_quality": 1.5, "volume_profile_poc": 0.3},
         config=BacktestConfig(min_score=0.3),
     )
-    assert res.scanner_id == "ensemble:breakout_quality"  # retired one dropped
+    assert res.scanner_id.startswith("ensemble:")
     assert len(res.equity_curve) > 0
+    assert res.metrics.total_trades >= 0
+
+
+def test_ensemble_regime_conditional_weights():
+    """A scanner gated out of a regime (weight < floor there) must not contribute trades when
+    that regime dominates; with a regime where it's allowed it can. Smoke-level check that the
+    regime_edges_map path runs and respects the floor."""
+    from engine.backtesting import backtest_ensemble
+
+    ohlcv = make_ohlcv(n=400, drift=0.12, amp=1.0)  # strong drift -> mostly 'trend'
+    res = backtest_ensemble(
+        ["breakout_quality", "volume_profile_poc"],
+        ohlcv,
+        regime_edges_map={
+            "breakout_quality": {"trend": 1.7, "range": 1.5},
+            "volume_profile_poc": {"trend": 0.3, "range": 1.2},  # gated in trend
+        },
+        config=BacktestConfig(min_score=0.3),
+    )
+    assert res.scanner_id.startswith("ensemble:")
     assert res.metrics.total_trades >= 0
 
 

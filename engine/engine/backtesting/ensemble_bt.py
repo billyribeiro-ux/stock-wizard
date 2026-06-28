@@ -30,12 +30,26 @@ def backtest_ensemble(
     edge_weights: dict[str, float] | None = None,
     params: dict | None = None,
     config: BacktestConfig | None = None,
+    regime_edges_map: dict[str, dict[str, float]] | None = None,
 ) -> BacktestResult:
-    """Run an edge-weighted consensus of ``scanner_ids`` over one symbol's OHLCV."""
+    """Run an edge-weighted consensus of ``scanner_ids`` over one symbol's OHLCV.
+
+    When ``regime_edges_map`` is given (scanner -> {regime: weight}), each scanner's vote is
+    weighted by its edge in the *current* regime and dropped where it has none — letting a
+    momentum scanner (trend) and a mean-reversion scanner (range) cooperate as independent,
+    regime-conditional edges rather than one diluting the other."""
     cfg = config or BacktestConfig()
     weights = edge_weights or {}
-    active = [s for s in scanner_ids if weights.get(s, 1.0) >= _EDGE_FLOOR]
-    scanners = {s: build_scanner(s, params) for s in active}
+    regime_map = regime_edges_map or {}
+    # Run every candidate each bar; the effective (possibly regime-specific) weight decides
+    # whether it votes. All scanners are built once.
+    scanners = {s: build_scanner(s, params) for s in scanner_ids}
+
+    def effective_weight(scanner_id: str, regime_kind: str | None) -> float:
+        rmap = regime_map.get(scanner_id)
+        if rmap and regime_kind in rmap:
+            return rmap[regime_kind]
+        return weights.get(scanner_id, 1.0)
 
     eng = BacktestEngine(cfg)
     bars = ohlcv.bars
@@ -74,13 +88,21 @@ def backtest_ensemble(
                 ohlcv=window,
                 as_of=bar.ts,
             )
+            from ..scanners.regime_affinity import regime_kind_from_er
+
+            regime_kind = regime_kind_from_er(snap.get("regime.er"))
             results = []
-            for sc in scanners.values():
+            bar_weights: dict[str, float] = {}
+            for sid, sc in scanners.items():
+                w = effective_weight(sid, regime_kind)
+                if w < _EDGE_FLOOR:  # gated out of this regime
+                    continue
                 try:
                     results.append(sc.run(ctx))
+                    bar_weights[sid] = w
                 except Exception:
                     continue
-            cons = combine(results, edge_weights=weights)
+            cons = combine(results, edge_weights=bar_weights)
             if (
                 cons.action == "trade"
                 and cons.direction in (Side.LONG, Side.SHORT)
@@ -105,7 +127,7 @@ def backtest_ensemble(
         starting_equity=cfg.starting_equity,
     )
     return BacktestResult(
-        scanner_id="ensemble:" + "+".join(active),
+        scanner_id="ensemble:" + "+".join(scanner_ids),
         params=params or {},
         universe=[ohlcv.symbol],
         period_start=bars[0].ts.date() if bars else datetime.now().date(),

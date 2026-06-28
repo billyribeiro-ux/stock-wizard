@@ -15,10 +15,11 @@ the project is pre-1.0 and versions track development waves rather than semver r
   `build_signal` applies the weight for the *current* regime — so a scanner trades only where
   it's OOS-proven and is gated where it isn't. Resurrects range mean-reversion as an
   independent edge for the ensemble. See `docs/BACKTESTS.md`.
-- **Multi-scanner ensemble backtest** (`backtest_ensemble`) — fuses scanners on each bar via
-  the edge-weighted consensus, dropping OOS-retired ones before voting. OOS study: it wins on
-  absolute PnL but not risk-adjusted vs the single best scanner (the two proven edges are
-  correlated momentum), so it's kept as a generalizing capability, documented honestly in
+- **Regime-conditional ensemble** (`backtest_ensemble` + `regime_edges_map`) — fuses scanners
+  on each bar weighting each by its edge in the *current* regime. Fusing momentum (trend) with
+  range-only mean-reversion **more than doubles** the best single scanner's held-out profit
+  (+7424 vs +3541, PF 1.30) — versus a naive correlated-momentum ensemble that barely beat it
+  (+3879). Independence is the key: regime-gating makes the edges add, not dilute. See
   `docs/BACKTESTS.md`.
 - **Evidence-driven trade management (measured, not guessed).** Added no-lookahead ratcheting
   stops (`breakeven_atr`/`trail_atr` in `BacktestConfig`) and tested them OOS — they *degrade*

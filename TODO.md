@@ -65,9 +65,12 @@ what's in flight and what's next.
 - [x] Per-(scanner, regime) edge weights — validate & gate each scanner in the regime where
       it's OOS-proven (`regime_edges`). Resurrected `volume_profile_poc` as a range-only
       mean-reversion edge; `build_signal` applies the current-regime weight live.
-- [ ] Re-run the ensemble with the regime-conditional weights (momentum in trend + range
-      mean-reversion) and confirm the now-*independent* edges lift risk-adjusted returns.
-- [ ] Surface `regime_edges` in the ML Lab edge-weights panel (trend/range split).
+- [x] Regime-conditional ensemble — momentum + range mean-reversion fused via per-regime
+      weights MORE THAN DOUBLES the best single scanner's held-out profit (+7424 vs +3541).
+      `backtest_ensemble(regime_edges_map=...)`. See `docs/BACKTESTS.md`.
+- [ ] Wire a live regime-conditional ensemble scan endpoint (multi-scanner consensus that
+      applies per-regime weights), so the dashboard can run the fused strategy directly.
+- [ ] Surface `regime_edges` (trend/range split) in the ML Lab edge-weights panel.
 
 ## Known limitations / environment
 - yfinance is unreachable in the sandbox (curl_cffi TLS vs the agent proxy); FMP and other

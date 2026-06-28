@@ -221,6 +221,26 @@ it's been proven and is gated where it hasn't. This resurrects range mean-revers
 genuinely *independent* edge (uncorrelated with the momentum edge) — exactly what the ensemble
 needs to improve risk-adjusted returns as the validated roster grows.
 
+### Regime-conditional ensemble (the payoff)
+
+With per-regime edges in hand, the ensemble fuses momentum (breakout_quality, both regimes)
+with range-only mean-reversion (volume_profile_poc, gated to range) — two *independent* edges.
+Held-out 40%, 6-symbol basket:
+
+| Strategy | trades | win% | meanPF | totPnL |
+|---|---:|---:|---:|---:|
+| breakout_quality alone | 149 | 49.7 | 1.47 | +3541 |
+| volume_profile_poc alone | 486 | 40.9 | 1.06 | +640 |
+| naive ensemble (bq + bigger_move, correlated momentum) | 229 | 47.2 | 1.32 | +3879 |
+| **regime-ensemble (bq trend+range, vp range-only)** | 422 | 46.9 | 1.30 | **+7424** |
+
+The regime-conditional ensemble **more than doubles** the best single scanner's profit (+7424
+vs +3541) at a comparable profit factor (1.30) — whereas the naive ensemble of two correlated
+momentum scanners barely moved the needle (+3879). The difference is *independence*: gating
+mean-reversion to range means it fires when momentum is quiet, so the edges add instead of
+dilute. This is the core thesis realized — validate each edge, gate it to its regime, and fuse
+the regime-specialists.
+
 ## Reproduce
 
 The harness lives in the scratchpad (not committed; it's a throwaway). Set `FMP_KEY` and
