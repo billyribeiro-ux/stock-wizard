@@ -39,6 +39,11 @@ class BacktestConfig:
     min_score: float = 0.4
     time_stop_bars: int = 60
     allow_short: bool = True
+    # Ratcheting stop management (0 = disabled). breakeven_atr: once price runs this many ATR
+    # in favor, the stop is raised to entry (cuts losers that peaked in profit). trail_atr:
+    # thereafter trail the stop this many ATR below the high-water mark (captures give-back).
+    breakeven_atr: float = 0.0
+    trail_atr: float = 0.0
 
 
 @dataclass
@@ -49,6 +54,7 @@ class _OpenPosition:
     stop: float
     target: float
     size: float
+    atr: float = 0.0  # ATR at entry (for ratcheting stop math)
     bars_held: int = 0
     mfe: float = 0.0
     mae: float = 0.0
@@ -101,11 +107,15 @@ class BacktestEngine:
             if pos is not None:
                 state.bars_in_trade += 1
                 pos.bars_held += 1
+                # Exit is checked against the stop ratcheted from *prior* bars (no intrabar
+                # lookahead); then this bar updates the high-water mark and ratchets for next.
                 exit_px, reason = self._check_exit(pos, bar, cfg)
-                self._update_excursion(pos, bar)
                 if exit_px is not None:
                     self._close(state, pos, bar.ts, exit_px, reason, slip, cfg)
                     pos = None
+                else:
+                    self._update_excursion(pos, bar)
+                    self._ratchet_stop(pos, cfg)
 
             # --- look for a new entry (flat only) ---
             if pos is None:
@@ -172,6 +182,7 @@ class BacktestEngine:
             stop=float(plan.stop),
             target=float(plan.targets[0]),
             size=max(size, 0.0),
+            atr=atr,
         )
 
     def _check_exit(self, pos, bar: MarketBar, cfg) -> tuple[float | None, str]:
@@ -189,6 +200,24 @@ class BacktestEngine:
         if pos.bars_held >= cfg.time_stop_bars:
             return float(bar.close), "time_stop"
         return None, ""
+
+    def _ratchet_stop(self, pos, cfg) -> None:
+        """Raise (long) / lower (short) the stop based on the high-water mark: move to
+        breakeven once ``breakeven_atr`` in profit, then trail by ``trail_atr``. Stops only
+        ever move in the favorable direction — never loosened."""
+        atr = pos.atr
+        if atr <= 0 or (cfg.breakeven_atr <= 0 and cfg.trail_atr <= 0):
+            return
+        if pos.side == Side.LONG:
+            if cfg.breakeven_atr > 0 and pos.mfe >= cfg.breakeven_atr * atr:
+                pos.stop = max(pos.stop, pos.entry)
+            if cfg.trail_atr > 0 and pos.mfe >= cfg.trail_atr * atr:
+                pos.stop = max(pos.stop, pos.entry + pos.mfe - cfg.trail_atr * atr)
+        else:
+            if cfg.breakeven_atr > 0 and pos.mfe >= cfg.breakeven_atr * atr:
+                pos.stop = min(pos.stop, pos.entry)
+            if cfg.trail_atr > 0 and pos.mfe >= cfg.trail_atr * atr:
+                pos.stop = min(pos.stop, pos.entry - pos.mfe + cfg.trail_atr * atr)
 
     def _update_excursion(self, pos, bar: MarketBar) -> None:
         hi, lo = float(bar.high), float(bar.low)

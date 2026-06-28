@@ -21,6 +21,11 @@ from ..schemas import (
 
 _NO_TRADE = {"no_trade", "no_flow", "balance", "poc_balance", "inside_value", "insufficient_data"}
 
+# Below this validated edge multiplier a scanner has been OOS-*retired* (profit factor < 1 on
+# time-separated data — it loses money). Such signals are logged but not made tradeable. The
+# default 1.0 (unproven) and any promoted weight (>1) pass: innocent until proven losing.
+_EDGE_FLOOR = 0.5
+
 
 def _trade_style(timeframe) -> TradeStyle:
     tf = timeframe.value
@@ -53,7 +58,9 @@ def build_signal(
     if er is None and snapshot is not None:
         er = snapshot.get("regime.er")
     regime_aligned = is_regime_aligned(result.scanner_id, er)
-    gated = result.triggered and not is_no_trade and not regime_aligned
+    # Edge gate: an OOS-retired scanner (validated profit factor < 1) doesn't trade live.
+    edge_retired = edge_weight < _EDGE_FLOOR
+    gated = result.triggered and not is_no_trade and (not regime_aligned or edge_retired)
 
     entry_level = result.levels.get("close") or result.levels.get("spot")
     atr = (result.feature_refs or {}).get("atr.14") or (
@@ -128,11 +135,16 @@ def build_signal(
         evidence=result.evidence,
         data_sources=[result.scanner_id],
         computed_fields=computed,
-        notes=_notes(is_no_trade, gated, result.scanner_id),
+        notes=_notes(is_no_trade, gated, edge_retired, result.scanner_id),
     )
 
 
-def _notes(is_no_trade: bool, gated: bool, scanner_id: str) -> str | None:
+def _notes(is_no_trade: bool, gated: bool, edge_retired: bool, scanner_id: str) -> str | None:
+    if gated and edge_retired:
+        return (
+            f"Edge-gated: '{scanner_id}' is out-of-sample retired (validated profit factor "
+            "< 1) — trade plan suppressed (logged for audit)."
+        )
     if gated:
         return (
             f"Regime-gated: '{scanner_id}' has no validated edge in the current regime — "

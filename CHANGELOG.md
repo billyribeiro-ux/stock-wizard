@@ -7,6 +7,13 @@ the project is pre-1.0 and versions track development waves rather than semver r
 ## [Unreleased]
 
 ### Added
+- **Evidence-driven trade management (measured, not guessed).** Added no-lookahead ratcheting
+  stops (`breakeven_atr`/`trail_atr` in `BacktestConfig`) and tested them OOS — they *degrade*
+  the proven scanners (breakout_quality +3966→+2794, win 55%→45%), so they're kept default-OFF.
+  Conviction (`min_score`) sweeps likewise don't help the selective scanners. The one change
+  the data supports: a **live edge gate** — `build_signal` suppresses the trade plan for any
+  scanner whose validated OOS edge weight marks it *retired* (PF < 1; weight < 0.5), flagged
+  `edge-gated` and logged for audit. Full study in `docs/BACKTESTS.md`.
 - **End-to-end integration test against a real Postgres + Redis** (`tests/integration/
   test_e2e_pipeline.py`): drives the real FastAPI app + DB through health → encrypted vendor
   key → scan → execute → results/signals (carrying regime/edge) → forward backtest → persisted

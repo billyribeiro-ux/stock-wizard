@@ -192,6 +192,20 @@ def test_edge_weight_surfaced_on_signal():
     assert sig.edge_weight == 1.8
 
 
+def test_edge_gate_suppresses_oos_retired_scanner():
+    # regime-aligned (trend, er=0.6) but OOS-retired (edge_weight 0.3) -> no trade plan.
+    sig = build_signal(_trend_only_result(Side.LONG, er=0.6), edge_weight=0.3)
+    assert sig.regime_aligned is True  # not a regime issue
+    assert sig.entry is None and sig.stop is None  # plan suppressed by the edge gate
+    assert "edge-gated" in (sig.notes or "").lower()
+
+
+def test_unproven_scanner_still_trades():
+    # default edge_weight 1.0 (unproven) must NOT be edge-gated.
+    sig = build_signal(_trend_only_result(Side.LONG, er=0.6))  # edge_weight defaults to 1.0
+    assert sig.entry is not None and sig.stop is not None
+
+
 def test_walkforward_weights_demote_overfit_scanner():
     """An OOS-promoted scanner should out-vote an OOS-retired one of equal raw score."""
     from engine.evidence import combine, edge_weight_from_walkforward

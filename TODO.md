@@ -50,6 +50,17 @@ what's in flight and what's next.
       (currently verified offline only).
 - [ ] Option-chain backtests via Schwab real chains (gamma-regime-segmented).
 
+## Evidence-based tuning (done / ongoing)
+- [x] MFE/MAE diagnostic + OOS test of ratcheting stops → rejected (default-off; baseline
+      exits already near-optimal). See `docs/BACKTESTS.md`.
+- [x] `min_score` conviction sweep → doesn't help selective scanners; low-edge ones handled
+      by the edge gate.
+- [x] Live **edge gate**: OOS-retired scanners (PF < 1) no longer trade live.
+- [ ] Walk-forward-learned per-scanner exit/threshold params (in-sample optimise → OOS
+      validate) instead of global defaults — only if it beats baseline OOS.
+- [ ] Multi-scanner ensemble portfolio backtest (compose proven scanners; prove it beats any
+      single scanner OOS).
+
 ## Known limitations / environment
 - yfinance is unreachable in the sandbox (curl_cffi TLS vs the agent proxy); FMP and other
   `requests`-based vendors work fine through the proxy.

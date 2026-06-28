@@ -139,6 +139,46 @@ Takeaways:
 - These weights are persisted (`model_registry`) and applied live by `scan_service`; re-run
   the endpoint on a larger basket / longer history to tighten the borderline calls.
 
+## Evidence-driven trade-management study
+
+Rather than tune by intuition, each proposed improvement was tested out-of-sample (forward
+test across the basket) and adopted only if the evidence supported it. Two intuitive tweaks
+were **rejected by the data**; one structural change was **kept**.
+
+### Diagnostic (MFE/MAE per trade)
+Across `breakout_quality` / `bigger_move` / `volume_profile_poc`: 58–68% of losers first
+reached >0.5% profit (avg peak +1.0–1.4%) before reversing, and winners gave back ~1.2–1.8%
+from their peak. This *suggested* a breakeven + trailing stop.
+
+### Rejected: ratcheting stops (breakeven / trailing)
+Implemented as no-lookahead config (`breakeven_atr`, `trail_atr`) and measured OOS:
+
+| Policy | breakout_quality OOS PnL | win% | bigger_move OOS PnL |
+|---|---:|---:|---:|
+| baseline (fixed 1.0 ATR stop, 1.5/3.0 targets) | **+3966** | **55** | **+234** |
+| breakeven @1.0 ATR | +2794 | 45 | −16 |
+| breakeven + trail @2.0 | +2794 | 45 | −16 |
+| breakeven 0.75 + trail 1.5 | +2279 | 39 | −66 |
+
+The breakeven stop scratches more eventual winners (which dip to entry before running) than it
+rescues losers — win rate falls 55%→45%. **Kept the capability, but default-OFF.** The fixed
+exit policy is already near-optimal; shipping the "obvious" improvement would have degraded it.
+
+### Rejected (mostly): conviction filtering (`min_score` sweep)
+Raising the score threshold does **not** help the already-selective scanners
+(`breakout_quality` best at 0.35–0.45, PF 1.85; degrades to 1.69 at 0.65). It helps only the
+low-edge, high-frequency `volume_profile_poc` (PF 0.99→1.10 at 0.55) — but that scanner is
+already OOS-retired and handled by the edge gate below, so no fragile per-scanner threshold is
+hardcoded.
+
+### Adopted: live edge gate (retire OOS-losers from trading)
+The one change the evidence decisively supports. A scanner whose **validated OOS edge weight
+marks it retired** (profit factor < 1 on time-separated data, weight 0.3) no longer produces a
+tradeable signal: `build_signal` suppresses its plan (`_EDGE_FLOOR = 0.5`) and flags it
+`edge-gated`, while still logging it for audit. Unproven scanners (weight 1.0) and promoted
+ones (>1) trade normally — innocent until proven losing. This directly raises live expectancy
+by not trading the scanners proven to lose, and composes with the regime gate.
+
 ## Reproduce
 
 The harness lives in the scratchpad (not committed; it's a throwaway). Set `FMP_KEY` and

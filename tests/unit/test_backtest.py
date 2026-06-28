@@ -10,6 +10,8 @@ from engine.backtesting import BacktestConfig, BacktestEngine, compute_metrics
 from engine.schemas import OHLCV, EquityPoint, MarketBar, Side, Timeframe, TradeRecord
 from tests.conftest import make_ohlcv
 
+NOW = datetime(2026, 6, 11, tzinfo=UTC)
+
 
 def test_backtest_runs_and_reports_metrics():
     ohlcv = make_ohlcv(n=400, drift=0.1, amp=1.5)
@@ -85,3 +87,43 @@ def test_metrics_math():
     assert m.profit_factor == 2.0  # 100 / 50
     assert m.expectancy == 25.0
     assert math.isclose(float(m.total_pnl), 50.0)
+
+
+def test_ratchet_stop_moves_to_breakeven_and_trails():
+    """Breakeven raises the stop to entry once price runs far enough in favor; trailing
+    then follows the high-water mark. Stops must only ever move favorably."""
+    from engine.backtesting.engine import _OpenPosition
+
+    eng = BacktestEngine(BacktestConfig(breakeven_atr=1.0, trail_atr=2.0))
+    # long entry at 100, atr 2, initial stop 98
+    pos = _OpenPosition(
+        side=Side.LONG, entry_ts=NOW, entry=100.0, stop=98.0, target=103.0, size=1.0, atr=2.0
+    )
+    # not yet 1 ATR in profit -> stop unchanged
+    pos.mfe = 1.5
+    eng._ratchet_stop(pos, eng.cfg)
+    assert pos.stop == 98.0
+    # reached >=1 ATR (2.0) favorable -> stop ratchets up to breakeven (entry)
+    pos.mfe = 2.0
+    eng._ratchet_stop(pos, eng.cfg)
+    assert pos.stop == 100.0
+    # far in profit (5 ATR=10) -> trail to high-water - 2 ATR = 110 - 4 = 106
+    pos.mfe = 10.0
+    eng._ratchet_stop(pos, eng.cfg)
+    assert pos.stop == 106.0
+    # excursion pulls back (lower mfe) -> stop never loosens
+    pos.mfe = 6.0
+    eng._ratchet_stop(pos, eng.cfg)
+    assert pos.stop == 106.0
+
+
+def test_ratchet_disabled_by_default():
+    from engine.backtesting.engine import _OpenPosition
+
+    eng = BacktestEngine(BacktestConfig())  # defaults: breakeven_atr=0, trail_atr=0
+    pos = _OpenPosition(
+        side=Side.SHORT, entry_ts=NOW, entry=100.0, stop=102.0, target=97.0, size=1.0, atr=2.0
+    )
+    pos.mfe = 8.0
+    eng._ratchet_stop(pos, eng.cfg)
+    assert pos.stop == 102.0  # untouched when disabled
