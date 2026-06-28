@@ -14,6 +14,9 @@ the project is pre-1.0 and versions track development waves rather than semver r
   blended edge weight. New endpoints `POST /backtests/validate-roster` and
   `GET /backtests/edge-weights`; the ML Lab gains a "Scanner edge weights" panel with a
   one-click roster-validate button. `scan_service` already prefers these persisted weights.
+  A **30-trade minimum** floor keeps a scanner neutral until there's enough pooled OOS
+  evidence (so a 6-trade PF-7 fluke can't earn a boost), and per-bar-fitting scanners
+  (`anomaly_detection`) are excluded from the sweep.
 - **Persisted walk-forward edge weights, applied live.** A forward-test backtest now persists
   the out-of-sample verdict + derived edge weight per scanner
   (`repo.save_walkforward_edge` → `model_registry` as `walkforward:{scanner_id}`), and

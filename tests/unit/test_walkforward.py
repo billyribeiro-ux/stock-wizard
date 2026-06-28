@@ -89,3 +89,49 @@ def test_blend_forward_tests_empty_is_none():
 
     assert blend_forward_tests("volume_profile_poc", []) is None
     assert blend_forward_tests("volume_profile_poc", [("A", None)]) is None  # type: ignore[list-item]
+
+
+def test_blend_neutral_on_too_few_trades():
+    """A scanner with very few pooled OOS trades must not earn a promote/retire verdict —
+    it stays neutral (keep_testing, weight 1.0) however good/bad those few trades look."""
+    from datetime import date
+
+    from engine.backtesting import BlendedEdge, ForwardTest, blend_forward_tests
+    from engine.backtesting.roster import MIN_OOS_TRADES
+    from engine.schemas import BacktestResult
+
+    def ft_with(pnls):  # build a ForwardTest whose OOS trades have these PnLs
+        now = datetime(2026, 1, 2, tzinfo=UTC)
+        trades = [
+            TradeRecord(
+                symbol="X",
+                side=Side.LONG,
+                entry_ts=now,
+                entry_price=Decimal("100"),
+                exit_ts=now,
+                exit_price=Decimal("101"),
+                pnl=Decimal(str(p)),
+                return_pct=p / 100.0,
+            )
+            for p in pnls
+        ]
+        oos = BacktestResult(
+            scanner_id="x", period_start=date(2026, 1, 1), period_end=date(2026, 2, 1), trades=trades
+        )
+        return ForwardTest(
+            scanner_id="x",
+            baseline={},
+            forward={"total_trades": len(trades), "profit_factor": 9.0},
+            drift={},
+            monte_carlo=None,
+            promotion="promote",
+            rationale="",
+            out_of_sample=oos,
+        )
+
+    # 5 all-winning trades (PF huge) but below the floor -> neutral, not promote
+    blended = blend_forward_tests("x", [("A", ft_with([100, 100, 100, 100, 100]))])
+    assert isinstance(blended, BlendedEdge)
+    assert blended.total_oos_trades < MIN_OOS_TRADES
+    assert blended.promotion == "keep_testing"
+    assert blended.edge_weight == 1.0

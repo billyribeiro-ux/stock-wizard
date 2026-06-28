@@ -109,6 +109,36 @@ OOS profit factor (1.0–2.5), `keep_testing` stays neutral (1.0), and `retire` 
 overfit scanner like `mtf_structure` (retired) of equal raw score — proven scanners carry
 proportionally more weight, exactly as the blueprint requires.
 
+## Roster validation — blended out-of-sample edge per scanner
+
+The batch roster pass (`POST /backtests/validate-roster`) forward-tests every
+OHLCV-backtestable scanner across the basket, pools each symbol's out-of-sample trades per
+scanner (`blend_forward_tests`), and assigns one blended edge weight. A **minimum of 30
+pooled OOS trades** is required before a promote/retire verdict is allowed — below that the
+scanner stays neutral (×1.0), because a scanner that "wins" 5 of 5 OOS trades is luck, not a
+validated edge. (Run: 4 symbols — SPY/QQQ/NVDA/JPM — ~3y; `anomaly_detection` is excluded as
+it re-fits a model every bar.)
+
+| Edge | Scanner | Verdict | OOS trades | Note |
+|---:|---|---|---:|---|
+| **×1.50** | bigger_move | promote | 33 | z-score continuation — survives OOS |
+| ×1.00 | breakout_quality | keep_testing | 61 | PF 1.25 OOS; promoted on the larger 8-sym/5y run |
+| ×1.00 | long_trap | keep_testing | 100 | borderline (PF ~1.0) |
+| ×1.00 | regime_classification | keep_testing | 193 | borderline (PF ~1.05) |
+| ×1.00 | short_trap / reversal_master / momentum_ignition / volume_divergence / rvol_expansion | keep_testing | 1–15 | **below the 30-trade floor — neutral, not trusted** |
+| **×0.30** | mtf_structure, key_levels, gap_scan, failed_move, liquidity_sweep, low_volume_pullback, pullback_classifier, seasonality, trend_exhaustion, volume_dryup_reversal, volume_profile_poc, anchored_vwap | retire | 40–216 | net-negative OOS over this trending window → damped |
+
+Takeaways:
+
+- The minimum-trade floor is what keeps this honest: without it, `short_trap` (6 trades,
+  PF 7.5) and `reversal_master` (1 trade, PF 150) would have earned ×2.5 weights off pure
+  noise. They're now correctly neutral until they accumulate enough OOS evidence.
+- Only `bigger_move` earns a boost on this basket; most mean-reversion scanners retire OOS
+  (consistent with the regime-segmented findings — they get run over in trends). The live
+  ensemble now damps the retired set to ×0.30, so they barely vote.
+- These weights are persisted (`model_registry`) and applied live by `scan_service`; re-run
+  the endpoint on a larger basket / longer history to tighten the borderline calls.
+
 ## Reproduce
 
 The harness lives in the scratchpad (not committed; it's a throwaway). Set `FMP_KEY` and

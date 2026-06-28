@@ -13,6 +13,11 @@ from dataclasses import dataclass, field
 from .metrics import compute_metrics
 from .walkforward import ForwardTest, _decide
 
+# Below this many pooled out-of-sample trades we can't distinguish edge from luck, so we
+# stay neutral (keep_testing / weight 1.0) rather than promote or retire on noise — a
+# scanner that "wins" 6 of 6 OOS trades is not a validated edge.
+MIN_OOS_TRADES = 30
+
 
 @dataclass
 class BlendedEdge:
@@ -55,14 +60,19 @@ def blend_forward_tests(
 
     combined = compute_metrics(pooled_trades, [])
     cm = combined.model_dump(mode="json")
-    promotion, _ = _decide({}, cm)
+    total_trades = int(cm.get("total_trades", 0))
     pf = float(cm.get("profit_factor", 0.0))
+    # Too few pooled OOS trades -> stay neutral (can't tell edge from luck).
+    if total_trades < MIN_OOS_TRADES:
+        promotion = "keep_testing"
+    else:
+        promotion, _ = _decide({}, cm)
     edge_weight = edge_weight_from_walkforward(promotion, pf)
 
     return BlendedEdge(
         scanner_id=scanner_id,
         n_symbols=len(results),
-        total_oos_trades=int(cm.get("total_trades", 0)),
+        total_oos_trades=total_trades,
         blended_profit_factor=round(pf, 4),
         blended_win_rate=round(float(cm.get("win_rate", 0.0)), 4),
         promote_fraction=round(promotes / len(results), 4),
