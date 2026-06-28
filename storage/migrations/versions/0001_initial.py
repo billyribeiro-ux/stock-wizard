@@ -19,18 +19,27 @@ depends_on = None
 def upgrade() -> None:
     bind = op.get_bind()
 
-    # TimescaleDB extension must exist before converting tables to hypertables.
-    op.execute("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE")
+    # TimescaleDB gives us hypertables in production; it is optional for dev/CI/test, where a
+    # plain Postgres works fine. Probe availability *before* CREATE EXTENSION — a failed
+    # CREATE would poison the migration transaction — and degrade gracefully when absent.
+    available = bind.exec_driver_sql(
+        "SELECT 1 FROM pg_available_extensions WHERE name = 'timescaledb'"
+    ).scalar()
+    has_timescale = False
+    if available is not None:
+        op.execute("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE")
+        has_timescale = True
 
     # Create all ORM tables.
     Base.metadata.create_all(bind=bind)
 
-    # Convert the time-series tables into hypertables.
-    for table, time_col in HYPERTABLES.items():
-        op.execute(
-            f"SELECT create_hypertable('{table}', '{time_col}', "
-            f"if_not_exists => TRUE, migrate_data => TRUE)"
-        )
+    # Convert the time-series tables into hypertables (only when TimescaleDB is present).
+    if has_timescale:
+        for table, time_col in HYPERTABLES.items():
+            op.execute(
+                f"SELECT create_hypertable('{table}', '{time_col}', "
+                f"if_not_exists => TRUE, migrate_data => TRUE)"
+            )
 
     # Helpful descending index for latest-bar lookups.
     op.execute(

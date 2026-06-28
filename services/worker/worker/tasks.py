@@ -9,6 +9,7 @@ from app.pubsub import get_redis
 from app.services.backtest_service import execute_backtest
 from app.services.discovery_service import execute_discovery
 from app.services.ml_service import execute_training
+from app.services.roster_service import validate_roster
 from app.services.scan_service import execute_scan
 
 
@@ -45,3 +46,11 @@ async def train_model(
             session, UUID(model_id), scanner_id, symbol, timeframe, history, int(horizon)
         )
         return report.get("status", "done") if isinstance(report, dict) else "done"
+
+
+async def run_roster_validation(ctx) -> int:
+    """Re-validate the scanner roster (forward-test the basket, persist blended OOS edge
+    weights). Scheduled periodically so edge weights stay fresh as regimes shift."""
+    async with SessionLocal() as session:
+        report = await validate_roster(session)
+        return int(report.get("n_scanners", 0))

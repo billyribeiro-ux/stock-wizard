@@ -14,6 +14,10 @@ what's in flight and what's next.
 - [x] Make `main` the repository branch carrying all work + align development onto it.
 
 ## Next up
+- [x] End-to-end integration test on a real Postgres + Redis (`tests/integration/
+      test_e2e_pipeline.py`) — full chain green; surfaced + fixed the JSONB non-finite bug
+      and the TimescaleDB-optional migration.
+- [x] Schedule periodic roster re-validation (weekly arq cron `run_roster_validation`).
 - [ ] Set `main` as the GitHub **default branch** (repo Settings → Branches — needs the UI
       or an admin API call; not exposed to the agent toolset).
 - [x] Investigate `trend_exhaustion`/`squeeze_compression` zero-trade behaviour — fixed the
@@ -33,8 +37,9 @@ what's in flight and what's next.
       in `scan_service` over the calibrator-derived weight.
 - [x] Surface the regime-gate badge + edge-weight chip in the signal UI (`SignalCard`).
 - [x] Run backtests on the FMP-preferred data resolver (not hard-coded yfinance).
-- [ ] Wire the FMP key into a Settings entry end-to-end and confirm a live scan uses it
-      (needs a running DB; validated offline so far).
+- [x] FMP key wired through Settings → live scan end-to-end (verified against a real
+      Postgres/Redis with the real FMP feed; the regime gate correctly demoted a trend-only
+      scanner in a range regime).
 - [x] Batch-validate the whole scanner roster (multi-symbol forward tests) → blended OOS
       edge weight per scanner, persisted + applied live (`roster_service`, `blend_forward_tests`,
       `POST /backtests/validate-roster`, ML Lab edge-weights panel).

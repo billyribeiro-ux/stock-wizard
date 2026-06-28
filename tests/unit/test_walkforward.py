@@ -116,7 +116,10 @@ def test_blend_neutral_on_too_few_trades():
             for p in pnls
         ]
         oos = BacktestResult(
-            scanner_id="x", period_start=date(2026, 1, 1), period_end=date(2026, 2, 1), trades=trades
+            scanner_id="x",
+            period_start=date(2026, 1, 1),
+            period_end=date(2026, 2, 1),
+            trades=trades,
         )
         return ForwardTest(
             scanner_id="x",

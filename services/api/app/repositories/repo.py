@@ -25,6 +25,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from engine.schemas import OHLCV, ScannerResult, SignalPacket
 
 
+def _json_safe(obj):
+    """Recursively replace non-finite floats (inf/-inf/NaN) with None so a payload is valid
+    JSON for Postgres JSONB — Postgres rejects the literal tokens ``Infinity``/``NaN``.
+    Legitimate infinities (e.g. a profit factor with zero losses) otherwise blow up the
+    INSERT and roll back the whole signal/result write."""
+    import math
+
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_json_safe(v) for v in obj]
+    return obj
+
+
 # ---- market data persistence ----
 async def save_ohlcv_bars(session: AsyncSession, ohlcv: OHLCV, cap: int = 5000) -> int:
     """Upsert recent bars into the Timescale hypertable (on-conflict-do-nothing)."""
@@ -176,10 +192,12 @@ async def save_result(session: AsyncSession, result: ScannerResult) -> None:
         score=result.score,
         classification=result.classification,
         levels={k: str(v) for k, v in result.levels.items()},
-        payload=result.model_dump(mode="json"),
+        payload=_json_safe(result.model_dump(mode="json")),
     )
     session.add(row)
-    session.add(EvidenceRow(result_id=result.id, packet=result.evidence.model_dump(mode="json")))
+    session.add(
+        EvidenceRow(result_id=result.id, packet=_json_safe(result.evidence.model_dump(mode="json")))
+    )
 
 
 async def list_results(session: AsyncSession, run_id: UUID) -> list[dict]:
@@ -213,7 +231,7 @@ async def save_signal(session: AsyncSession, signal: SignalPacket) -> None:
         stop=signal.stop,
         targets=[str(t) for t in signal.targets],
         expires_at=signal.expires_at,
-        packet=signal.model_dump(mode="json"),
+        packet=_json_safe(signal.model_dump(mode="json")),
     )
     session.add(row)
 
@@ -382,8 +400,8 @@ async def save_backtest_result(
     row = await session.get(Backtest, backtest_id)
     if row is None:
         return
-    row.metrics = metrics
-    row.payload = payload
+    row.metrics = _json_safe(metrics)
+    row.payload = _json_safe(payload)
     row.status = "done"
     row.finished_at = datetime.now(UTC)
     await session.commit()
@@ -410,7 +428,7 @@ async def save_model_report(
     row = await session.get(ModelRegistry, model_id)
     if row is None:
         return
-    row.metrics = metrics
+    row.metrics = _json_safe(metrics)
     row.status = status
     await session.commit()
 
@@ -459,12 +477,14 @@ async def save_walkforward_edge(
         name=f"walkforward:{scanner_id}",
         version="wf-1",
         status="validated",
-        metrics={
-            "promotion": promotion,
-            "oos_profit_factor": float(oos_profit_factor),
-            "edge_weight": float(edge_weight),
-            "detail": detail or {},
-        },
+        metrics=_json_safe(
+            {
+                "promotion": promotion,
+                "oos_profit_factor": float(oos_profit_factor),
+                "edge_weight": float(edge_weight),
+                "detail": detail or {},
+            }
+        ),
     )
     session.add(row)
     await session.commit()

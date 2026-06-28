@@ -7,6 +7,12 @@ the project is pre-1.0 and versions track development waves rather than semver r
 ## [Unreleased]
 
 ### Added
+- **End-to-end integration test against a real Postgres + Redis** (`tests/integration/
+  test_e2e_pipeline.py`): drives the real FastAPI app + DB through health → encrypted vendor
+  key → scan → execute → results/signals (carrying regime/edge) → forward backtest → persisted
+  & served edge weight. Skips cleanly when infra is absent (unit-only envs stay green).
+- **Scheduled roster re-validation.** New `run_roster_validation` worker task on a weekly arq
+  cron (Sun 02:00 UTC) keeps each scanner's out-of-sample edge weight fresh.
 - **Batch roster validation (system-wide self-grading).** `backtesting/roster.py`
   (`blend_forward_tests`) pools each symbol's out-of-sample trades per scanner into one
   blended promotion + edge weight; `services/roster_service.py` forward-tests the whole
@@ -63,6 +69,13 @@ the project is pre-1.0 and versions track development waves rather than semver r
   `?symbol=&from=&to=`.
 
 ### Fixed
+- **Non-finite floats broke JSONB persistence.** A signal/result/backtest payload containing
+  `inf`/`-inf`/`NaN` (e.g. a profit factor with zero losses) made Postgres reject the INSERT
+  ("invalid input syntax for type json: Token 'Infinity'") and roll back the write. The repo
+  now sanitizes all JSONB payloads (`_json_safe`) — caught by the new e2e test.
+- **Migration assumed TimescaleDB.** `0001_initial` now probes `pg_available_extensions`
+  first and creates plain tables when TimescaleDB is absent (dev/CI/test), so migrations run
+  on a vanilla Postgres; hypertables are still created when the extension is present.
 - **`vwap.dist_atr` was degenerate on daily+ bars.** It was built from *session* VWAP,
   which collapses to a single bar's typical price when there's one bar per calendar day, so
   the distance read ~0 and `trend_exhaustion` (plus other daily scanners reading it) never
