@@ -96,3 +96,20 @@ def edge_weight_from_calibrator(calibrator: dict | None) -> float:
     cal = ScoreCalibrator.from_dict(calibrator)
     edge = cal.apply(0.7) - cal.base_rate  # win-rate lift at a typical trigger score
     return max(0.25, min(2.5, 1.0 + 4.0 * edge))
+
+
+def edge_weight_from_walkforward(promotion: str, oos_profit_factor: float = 1.0) -> float:
+    """Derive an edge multiplier from a walk-forward out-of-sample verdict.
+
+    Scanners that *survive* time-separated validation carry proportionally more weight;
+    those that fail it are heavily damped so their votes barely count:
+
+    - ``promote``      -> scale with the validated OOS profit factor (1.0 .. 2.5)
+    - ``keep_testing`` -> 1.0 (neutral; unproven but not disproven)
+    - ``retire``       -> 0.3 (failed OOS; near-muted, not zeroed, to allow recovery)
+    """
+    if promotion == "retire":
+        return 0.3
+    if promotion == "promote":
+        return max(1.0, min(2.5, float(oos_profit_factor)))
+    return 1.0

@@ -74,6 +74,41 @@ data and a **rolling VWAP** for daily+ data, so the overextension signal is mean
 every timeframe. (`squeeze_compression` correctly stays at 0 trades — it is a directionless
 watchlist signal; its directional companion is `momentum_ignition`.)
 
+## Regime-segmented results (trend vs range)
+
+The engine now tags every trade with the market regime at entry — `trend` vs `range`, via a
+Kaufman **Efficiency Ratio** classifier (`features/regime.py`, point-in-time) — and emits a
+per-regime `regime_breakdown` on every `BacktestResult`. Aggregated over the 8-symbol basket
+(~3y daily):
+
+| Scanner | range (trades / win% / PnL) | trend (trades / win% / PnL) | Read |
+|---|---|---|---|
+| **breakout_quality** | 128 / 52.3 / **+4107** | 203 / 50.2 / **+5555** | Edge in **both** regimes — genuinely robust |
+| volume_profile_poc | 780 / 41.9 / +3180 | 441 / 41.5 / +1076 | Positive both; stronger in range (mean-reversion) |
+| mtf_structure | 142 / 38.0 / **−674** | 221 / 42.1 / **+1359** | **Regime-dependent — only works in trend** |
+| key_levels | 739 / 38.6 / −2793 | 381 / 32.3 / −6691 | Loses in both; far worse in trend |
+| failed_move | 395 / 38.2 / −1849 | 226 / 32.3 / −4175 | Counter-trend fade; crushed in trends |
+
+Actionable takeaways:
+
+- **`breakout_quality` carries edge in both regimes** — the strongest evidence yet that it is
+  a real signal, not a regime artifact.
+- **`mtf_structure` is the textbook case for regime-gating**: net negative in range, clearly
+  positive in trend. It should only be permitted (or weighted up) when the regime is `trend`.
+- The mean-reversion-flavoured scanners (`key_levels`, `failed_move`) are worst in trends —
+  fading a strong trend gets run over — confirming they belong to range regimes (and need
+  better filters before they're tradeable at all).
+
+## Feeding validation back into the ensemble
+
+The walk-forward verdicts now flow into the edge-weighted consensus
+(`evidence/ensemble.py`): `edge_weight_from_walkforward(promotion, oos_profit_factor)` maps a
+scanner's out-of-sample result to its vote multiplier — `promote` scales with the validated
+OOS profit factor (1.0–2.5), `keep_testing` stays neutral (1.0), and `retire` is damped to
+0.3. So in a multi-scanner signal, `breakout_quality` (promoted, OOS PF ~1.44) out-votes an
+overfit scanner like `mtf_structure` (retired) of equal raw score — proven scanners carry
+proportionally more weight, exactly as the blueprint requires.
+
 ## Reproduce
 
 The harness lives in the scratchpad (not committed; it's a throwaway). Set `FMP_KEY` and

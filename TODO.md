@@ -20,8 +20,13 @@ what's in flight and what's next.
       session-VWAP-on-daily bug (`trend_exhaustion`); `squeeze_compression` is a
       directionless watchlist signal by design.
 - [x] Walk-forward + out-of-sample validation across the basket → `docs/BACKTESTS.md`.
-- [ ] Regime-segmented backtests (trend vs chop) — mean-reversion scanners should be judged
-      in range regimes, not the trending baseline window.
+- [x] Regime-segmented backtests (trend vs range) → `BacktestResult.regime_breakdown` +
+      `features/regime.py`; surfaced `mtf_structure` as trend-only.
+- [x] Feed walk-forward OOS verdicts into the edge-weighted ensemble
+      (`edge_weight_from_walkforward`).
+- [ ] Regime-**gate** trend-only scanners (e.g. `mtf_structure`) in the live scan path so
+      they only fire / weight up in their favourable regime.
+- [ ] Persist per-scanner OOS edge weights and apply them in `scan_service`/signal building.
 - [ ] Wire the FMP key into a Settings entry end-to-end and confirm a live scan uses it.
 - [ ] Commit a real-data backtest-regression fixture under `tests/backtest_regression/`.
 - [ ] Live-validate the Schwab OAuth round-trip once app credentials are configured

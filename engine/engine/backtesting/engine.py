@@ -52,6 +52,7 @@ class _OpenPosition:
     bars_held: int = 0
     mfe: float = 0.0
     mae: float = 0.0
+    regime: str = "range"  # market regime (trend/range) at entry
 
 
 @dataclass
@@ -60,6 +61,7 @@ class _State:
     trades: list[TradeRecord] = field(default_factory=list)
     curve: list[EquityPoint] = field(default_factory=list)
     bars_in_trade: int = 0
+    trade_regimes: list[str] = field(default_factory=list)  # regime per closed trade
 
 
 class BacktestEngine:
@@ -82,6 +84,7 @@ class BacktestEngine:
         pos: _OpenPosition | None = None
         scanner = build_scanner(scanner_id, params)
         slip = cfg.slippage_bps / 10_000.0
+        regimes = _regime_labels(bars)  # per-bar trend/range, point-in-time
 
         for i in range(cfg.warmup, len(bars)):
             bar = bars[i]
@@ -125,6 +128,7 @@ class BacktestEngine:
                     atr = (res.feature_refs or {}).get("atr.14") or snap.get("atr.14")
                     if atr and atr > 0:
                         pos = self._open(state, res.direction, bar, float(atr), slip, cfg)
+                        pos.regime = regimes[i]
 
             state.curve.append(EquityPoint(ts=bar.ts, equity=Decimal(str(round(state.equity, 2)))))
 
@@ -141,6 +145,7 @@ class BacktestEngine:
             years=years,
             starting_equity=cfg.starting_equity,
         )
+        regime_breakdown = _regime_metrics(state.trades, state.trade_regimes, cfg.starting_equity)
         return BacktestResult(
             scanner_id=scanner_id,
             params=params or {},
@@ -150,6 +155,7 @@ class BacktestEngine:
             trades=state.trades,
             equity_curve=state.curve,
             metrics=metrics,
+            regime_breakdown=regime_breakdown,
         )
 
     # ------------------------------------------------------------------ #
@@ -215,6 +221,43 @@ class BacktestEngine:
                 exit_reason=reason,
             )
         )
+        state.trade_regimes.append(pos.regime)
+
+
+def _regime_labels(bars: list[MarketBar]) -> list[str]:
+    """Per-bar trend/range regime, point-in-time (each label uses only prior closes)."""
+    from ..features.regime import RANGE, regime_labels
+
+    if len(bars) < 25:
+        return [RANGE] * len(bars)
+    import pandas as pd
+
+    closes = pd.Series([float(b.close) for b in bars])
+    return regime_labels(closes)
+
+
+def _regime_metrics(
+    trades: list[TradeRecord], trade_regimes: list[str], starting_equity: float
+) -> dict:
+    """Per-regime metrics: group closed trades by entry regime and compute each bucket's
+    stats from a synthetic per-regime equity curve (cumulative trade PnL)."""
+    if not trades or len(trade_regimes) != len(trades):
+        return {}
+    buckets: dict[str, list[TradeRecord]] = {}
+    for trade, regime in zip(trades, trade_regimes, strict=False):
+        buckets.setdefault(regime, []).append(trade)
+
+    out: dict = {}
+    for regime, rtrades in buckets.items():
+        eq = starting_equity
+        curve = []
+        for t in rtrades:
+            eq += float(t.pnl) if t.pnl is not None else 0.0
+            curve.append(EquityPoint(ts=t.exit_ts or t.entry_ts, equity=Decimal(str(round(eq, 2)))))
+        out[regime] = compute_metrics(
+            rtrades, curve, len(rtrades), max(len(rtrades), 1), starting_equity=starting_equity
+        )
+    return out
 
 
 def _htf_window(htf: OHLCV | None, ts: datetime) -> OHLCV | None:

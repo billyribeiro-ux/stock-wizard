@@ -7,6 +7,15 @@ the project is pre-1.0 and versions track development waves rather than semver r
 ## [Unreleased]
 
 ### Added
+- **Regime-segmented backtesting.** New `features/regime.py` (Kaufman Efficiency Ratio →
+  trend/range, point-in-time) and `BacktestEngine` now tags each trade with its entry regime
+  and populates `BacktestResult.regime_breakdown` (per-regime metrics). Surfaced that
+  `mtf_structure` only has edge in trend regimes, while `breakout_quality` works in both —
+  see `docs/BACKTESTS.md`.
+- **Walk-forward verdicts feed the ensemble.** `evidence/ensemble.py` gains
+  `edge_weight_from_walkforward(promotion, oos_profit_factor)` — OOS-promoted scanners scale
+  their consensus vote with their validated profit factor (1.0–2.5), `keep_testing` is
+  neutral, `retire` is damped to 0.3. Proven scanners now carry proportionally more weight.
 - **Charles Schwab data adapter** (`engine/data/schwab_source.py`) — OAuth2 (3-legged)
   equity OHLCV and real option chains with vendor greeks/OI/IV (preferred for the gamma
   engine). Includes `SchwabCreds` encrypted bundle, `SchwabAuth` (authorize URL, code

@@ -60,6 +60,32 @@ def test_rolling_vwap_tracks_price():
     assert not rv.isna().all()
 
 
+def test_regime_classifier_trend_vs_range():
+    import pandas as pd
+
+    from engine.features import regime as reg
+
+    # a clean monotonic ramp is maximally efficient -> trend
+    trend = pd.Series([100 + i for i in range(60)], dtype=float)
+    assert reg.classify_regime(trend, window=20) == reg.TREND
+    # an oscillating series goes nowhere -> range
+    chop = pd.Series([100 + (i % 2) for i in range(60)], dtype=float)
+    assert reg.classify_regime(chop, window=20) == reg.RANGE
+
+
+def test_regime_labels_length_and_warmup():
+    import pandas as pd
+
+    from engine.features import regime as reg
+
+    closes = pd.Series([100 + i * 0.5 for i in range(40)], dtype=float)
+    labels = reg.regime_labels(closes, window=20)
+    assert len(labels) == len(closes)
+    assert all(label in (reg.TREND, reg.RANGE) for label in labels)
+    # pre-warmup bars default to RANGE (no established trend yet)
+    assert labels[0] == reg.RANGE
+
+
 def test_volume_profile_poc_at_high_volume_price():
     """Build bars where most volume sits at ~150 -> POC must land near 150."""
     base = datetime(2026, 6, 10, 13, 30, tzinfo=UTC)

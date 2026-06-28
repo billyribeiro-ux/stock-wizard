@@ -134,3 +134,49 @@ def test_edge_weight_from_calibrator():
     # a calibrator with win-rate below base -> weight < 1
     weak = ScoreCalibrator(x=[0.0, 1.0], y=[0.4, 0.4], base_rate=0.5, fitted=True).to_dict()
     assert edge_weight_from_calibrator(weak) < 1.0
+
+
+def test_edge_weight_from_walkforward():
+    from engine.evidence import edge_weight_from_walkforward
+
+    # promoted scanners scale with validated OOS profit factor (clamped 1.0..2.5)
+    assert edge_weight_from_walkforward("promote", 1.44) == 1.44
+    assert edge_weight_from_walkforward("promote", 5.0) == 2.5  # clamped
+    assert edge_weight_from_walkforward("promote", 0.8) == 1.0  # never below neutral
+    # unproven stays neutral, failed-OOS is heavily damped
+    assert edge_weight_from_walkforward("keep_testing", 1.1) == 1.0
+    assert edge_weight_from_walkforward("retire", 0.9) == 0.3
+
+
+def test_walkforward_weights_demote_overfit_scanner():
+    """An OOS-promoted scanner should out-vote an OOS-retired one of equal raw score."""
+    from engine.evidence import combine, edge_weight_from_walkforward
+    from engine.schemas import EvidencePacket, InvalidationRule, ScannerResult
+
+    def mk(scanner_id, side):
+        return ScannerResult(
+            scanner_id=scanner_id,
+            symbol="SPY",
+            timeframe=Timeframe.D1,
+            ts=datetime.now(UTC),
+            triggered=True,
+            direction=side,
+            score=0.7,
+            classification="x",
+            evidence=EvidencePacket(
+                why="",
+                why_now="",
+                invalidation=InvalidationRule(description="", kind="price"),
+                confidence=0.7,
+            ),
+        )
+
+    weights = {
+        "breakout_quality": edge_weight_from_walkforward("promote", 1.44),
+        "mtf_structure": edge_weight_from_walkforward("retire", 0.9),
+    }
+    cons = combine(
+        [mk("breakout_quality", Side.LONG), mk("mtf_structure", Side.SHORT)],
+        edge_weights=weights,
+    )
+    assert cons.direction == Side.LONG  # the validated scanner wins the tie
