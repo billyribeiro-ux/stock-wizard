@@ -43,8 +43,8 @@ what's in flight and what's next.
 - [x] Batch-validate the whole scanner roster (multi-symbol forward tests) → blended OOS
       edge weight per scanner, persisted + applied live (`roster_service`, `blend_forward_tests`,
       `POST /backtests/validate-roster`, ML Lab edge-weights panel).
-- [ ] Schedule the roster validation to re-run periodically (cron/worker) so edge weights
-      stay fresh as regimes shift.
+- [x] Schedule the roster validation to re-run periodically — weekly arq cron
+      (`run_roster_validation`, Sun 02:00 UTC) keeps edge weights fresh.
 - [ ] Commit a real-data backtest-regression fixture under `tests/backtest_regression/`.
 - [ ] Live-validate the Schwab OAuth round-trip once app credentials are configured
       (currently verified offline only).
